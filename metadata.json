@@ -1,0 +1,6 @@
+{
+  "name": "UniAtmos — Assistente Climático da UNIP",
+  "description": "UniAtmos — Assistente climático da UNIP com robô 3D interativo e informações meteorológicas para os campi universitários.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
