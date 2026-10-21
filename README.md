@@ -74,10 +74,6 @@ O projeto possui uma barra de navegação com acesso a diferentes áreas:
 
 O chatbot ocupa uma área central da interface, permitindo que o usuário envie mensagens e receba respostas do Atmos.
 
-### Footer
-
-O projeto também possui um **footer** com informações complementares sobre o UniAtmos.
-
 ---
 
 ## 🏗️ Tecnologias
@@ -97,6 +93,13 @@ O frontend foi desenvolvido utilizando:
 O backend utiliza:
 
 * **Python**
+* **FastAPI**
+
+### Banco de Dados
+
+O banco de dados utiliza:
+
+* **SQlite**
 
 A separação entre frontend e backend permite que a interface seja responsável pela experiência visual enquanto o backend processa a lógica e os dados necessários para o funcionamento do sistema.
 
