@@ -1,6 +1,6 @@
 import React from "react";
 import { ArrowLeft, Award, Sparkles } from "lucide-react";
-import { ThemeColors } from "../../components/ui/robot-hero.tsx";
+import { ThemeColors } from "../../../components/ui/robot-hero.tsx";
 
 interface CreditsPageProps {
   theme: ThemeColors;

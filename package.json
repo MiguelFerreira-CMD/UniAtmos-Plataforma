@@ -1,16 +1,15 @@
-
 {
   "name": "react-example",
   "private": true,
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite --port=3000 --host=0.0.0.0",
-    "server": "tsx server.ts",
-    "build": "vite build",
-    "preview": "vite preview",
+    "dev": "vite frontend --config frontend/vite.config.ts --port 3000 --host 0.0.0.0",
+    "server": "tsx backend/server.ts",
+    "build": "vite build frontend --config frontend/vite.config.ts",
+    "preview": "vite preview frontend --config frontend/vite.config.ts",
     "clean": "rm -rf dist server.js",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit -p frontend/tsconfig.json"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

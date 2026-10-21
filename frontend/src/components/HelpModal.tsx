@@ -1,5 +1,5 @@
 import { X, HelpCircle, MapPin, MessageSquare } from "lucide-react";
-import { ThemeColors } from "../../components/ui/robot-hero.tsx";
+import { ThemeColors } from "../../../components/ui/robot-hero.tsx";
 
 interface HelpModalProps {
   isOpen: boolean;
@@ -18,7 +18,7 @@ export function HelpModal({ isOpen, onClose, theme }: HelpModalProps) {
           boxShadow: `0 30px 70px rgba(0, 0, 0, 0.15), 0 0 50px ${theme.glow}`,
         }}
       >
-        
+
         {/* Cabeçalho amplo e destacado */}
         <div className="px-8 sm:px-10 py-7 border-b border-zinc-100 flex items-center justify-between bg-zinc-50/70">
           <div className="flex items-center gap-4">
@@ -48,9 +48,9 @@ export function HelpModal({ isOpen, onClose, theme }: HelpModalProps) {
 
         {/* Conteúdo amplo e espaçoso */}
         <div className="p-8 sm:p-10 space-y-7 text-zinc-600 leading-relaxed overflow-y-auto">
-          
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-            
+
             <div className="p-6 bg-zinc-50 rounded-2xl border border-zinc-200/80 flex flex-col gap-3">
               <div className="flex items-center gap-2.5 font-bold text-zinc-950 text-base">
                 <MapPin className="w-6 h-6 text-zinc-800" />

@@ -1,20 +1,20 @@
 import React from "react";
-import { ArrowLeft, HelpCircle, Sparkles } from "lucide-react";
-import { ThemeColors } from "../../components/ui/robot-hero.tsx";
+import { ArrowLeft, Info, Sparkles } from "lucide-react";
+import { ThemeColors } from "../../../components/ui/robot-hero.tsx";
 
-interface HelpPageProps {
+interface AboutPageProps {
   theme: ThemeColors;
   onNavigateHome: () => void;
 }
 
 /**
- * Página: Ajuda do UniAtmos
+ * Página: Sobre o UniAtmos
  * 
  * Estrutura inicial em branco, pronta para receber conteúdo futuro.
- * Para adicionar conteúdo, insira seus componentes, textos e tutoriais dentro
+ * Para adicionar conteúdo, insira seus componentes, textos e imagens dentro
  * da seção marcada como "ÁREA DE CONTEÚDO".
  */
-export function HelpPage({ theme, onNavigateHome }: HelpPageProps) {
+export function AboutPage({ theme, onNavigateHome }: AboutPageProps) {
   return (
     <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 flex flex-col gap-8 animate-in fade-in duration-300">
       {/* Barra superior de navegação / Voltar */}
@@ -35,21 +35,21 @@ export function HelpPage({ theme, onNavigateHome }: HelpPageProps) {
           className="w-12 h-12 rounded-2xl bg-zinc-950 text-white flex items-center justify-center shadow-md shrink-0"
           style={{ boxShadow: `0 4px 18px ${theme.glow}` }}
         >
-          <HelpCircle className="w-6 h-6" style={{ color: theme.primary }} />
+          <Info className="w-6 h-6" style={{ color: theme.primary }} />
         </div>
         <div>
           <h1 className="text-3xl sm:text-4xl font-black text-zinc-950 tracking-tight">
-            Central de Ajuda
+            Sobre o UniAtmos
           </h1>
           <p className="text-sm sm:text-base text-zinc-500 font-medium mt-1">
-            Instruções, dúvidas frequentes e suporte para utilização do UniAtmos.
+            Informações sobre o projeto e o assistente climático da UNIP.
           </p>
         </div>
       </div>
 
       {/* ========================================================================= */}
       {/* ÁREA DE CONTEÚDO PRINCIPAL (EM BRANCO PARA FUTURA EDIÇÃO)                  */}
-      {/* Adicione guias, FAQs, tutoriais de uso e componentes abaixo.              */}
+      {/* Adicione textos, imagens, seções informativas e componentes abaixo.       */}
       {/* ========================================================================= */}
       <div className="w-full bg-white/90 backdrop-blur-xs rounded-3xl border border-zinc-200/80 shadow-xs p-8 sm:p-14 min-h-[360px] flex flex-col justify-center items-center text-center">
         {/* Placeholder estruturado pronto para receber novas informações */}
@@ -61,11 +61,11 @@ export function HelpPage({ theme, onNavigateHome }: HelpPageProps) {
             <Sparkles className="w-6 h-6" />
           </div>
           <h2 className="text-base font-semibold text-zinc-700">
-            Estrutura da Página de Ajuda
+            Estrutura da Página Sobre
           </h2>
           <p className="text-xs sm:text-sm text-zinc-500 leading-relaxed">
-            Esta página está pronta para receber o conteúdo de suporte e ajuda.
-            Você pode adicionar perguntas frequentes, tutoriais e dicas de comandos para o robô Atmos.
+            Esta página está pronta para receber o conteúdo definitivo do Sobre.
+            Você pode adicionar parágrafos, blocos de texto, mídias e componentes aqui.
           </p>
         </div>
       </div>
@@ -85,4 +85,4 @@ export function HelpPage({ theme, onNavigateHome }: HelpPageProps) {
   );
 }
 
-export default HelpPage;
+export default AboutPage;

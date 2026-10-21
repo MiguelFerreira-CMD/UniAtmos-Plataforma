@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { UnipCampus, UNIP_CAMPUSES, UNIQUE_CITIES } from "../data/unip-campuses.ts";
+import { UnipCampus, UNIP_CAMPUSES, UNIQUE_CITIES } from "../../../backend/data/unip-campuses.ts";
 import { MapPin, Building2, HelpCircle, Info, Award, Menu, X, Home } from "lucide-react";
-import { ThemeColors } from "../../components/ui/robot-hero.tsx";
+import { ThemeColors } from "../../../components/ui/robot-hero.tsx";
 
 export type NavRoute = "home" | "sobre" | "ajuda" | "creditos";
 
@@ -52,7 +52,7 @@ export function AtmosNavbar({
     <header className="sticky top-0 z-40 w-full bg-white border-b border-zinc-200/80 shadow-xs select-none">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 sm:h-18 gap-4">
-          
+
           {/* LOGO: TEXTO “UniAtmos”, CLICÁVEL PARA VOLTAR À HOME */}
           <div className="flex items-center shrink-0">
             <button
@@ -91,11 +91,10 @@ export function AtmosNavbar({
             <button
               type="button"
               onClick={() => handleNavigate("sobre")}
-              className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${
-                currentRoute === "sobre"
-                  ? "bg-zinc-200/80 text-zinc-950 font-bold"
-                  : "text-zinc-600 hover:text-zinc-950 hover:bg-zinc-100"
-              }`}
+              className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${currentRoute === "sobre"
+                ? "bg-zinc-200/80 text-zinc-950 font-bold"
+                : "text-zinc-600 hover:text-zinc-950 hover:bg-zinc-100"
+                }`}
             >
               <Info className="w-3.5 h-3.5 text-zinc-400" />
               Sobre
@@ -104,11 +103,10 @@ export function AtmosNavbar({
             <button
               type="button"
               onClick={() => handleNavigate("ajuda")}
-              className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${
-                currentRoute === "ajuda"
-                  ? "bg-zinc-200/80 text-zinc-950 font-bold"
-                  : "text-zinc-600 hover:text-zinc-950 hover:bg-zinc-100"
-              }`}
+              className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${currentRoute === "ajuda"
+                ? "bg-zinc-200/80 text-zinc-950 font-bold"
+                : "text-zinc-600 hover:text-zinc-950 hover:bg-zinc-100"
+                }`}
             >
               <HelpCircle className="w-3.5 h-3.5 text-zinc-400" />
               Ajuda
@@ -117,11 +115,10 @@ export function AtmosNavbar({
             <button
               type="button"
               onClick={() => handleNavigate("creditos")}
-              className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${
-                currentRoute === "creditos"
-                  ? "bg-zinc-200/80 text-zinc-950 font-bold"
-                  : "text-zinc-600 hover:text-zinc-950 hover:bg-zinc-100"
-              }`}
+              className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${currentRoute === "creditos"
+                ? "bg-zinc-200/80 text-zinc-950 font-bold"
+                : "text-zinc-600 hover:text-zinc-950 hover:bg-zinc-100"
+                }`}
             >
               <Award className="w-3.5 h-3.5 text-zinc-400" />
               Créditos
@@ -171,11 +168,10 @@ export function AtmosNavbar({
               <button
                 type="button"
                 onClick={() => handleNavigate("home")}
-                className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg justify-center cursor-pointer ${
-                  currentRoute === "home"
-                    ? "bg-zinc-200 text-zinc-950 font-bold"
-                    : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200/80"
-                }`}
+                className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg justify-center cursor-pointer ${currentRoute === "home"
+                  ? "bg-zinc-200 text-zinc-950 font-bold"
+                  : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200/80"
+                  }`}
               >
                 <Home className="w-3.5 h-3.5" />
                 Início
@@ -183,11 +179,10 @@ export function AtmosNavbar({
               <button
                 type="button"
                 onClick={() => handleNavigate("sobre")}
-                className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg justify-center cursor-pointer ${
-                  currentRoute === "sobre"
-                    ? "bg-zinc-200 text-zinc-950 font-bold"
-                    : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200/80"
-                }`}
+                className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg justify-center cursor-pointer ${currentRoute === "sobre"
+                  ? "bg-zinc-200 text-zinc-950 font-bold"
+                  : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200/80"
+                  }`}
               >
                 <Info className="w-3.5 h-3.5" />
                 Sobre
@@ -195,11 +190,10 @@ export function AtmosNavbar({
               <button
                 type="button"
                 onClick={() => handleNavigate("ajuda")}
-                className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg justify-center cursor-pointer ${
-                  currentRoute === "ajuda"
-                    ? "bg-zinc-200 text-zinc-950 font-bold"
-                    : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200/80"
-                }`}
+                className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg justify-center cursor-pointer ${currentRoute === "ajuda"
+                  ? "bg-zinc-200 text-zinc-950 font-bold"
+                  : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200/80"
+                  }`}
               >
                 <HelpCircle className="w-3.5 h-3.5" />
                 Ajuda
@@ -207,11 +201,10 @@ export function AtmosNavbar({
               <button
                 type="button"
                 onClick={() => handleNavigate("creditos")}
-                className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg justify-center cursor-pointer ${
-                  currentRoute === "creditos"
-                    ? "bg-zinc-200 text-zinc-950 font-bold"
-                    : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200/80"
-                }`}
+                className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg justify-center cursor-pointer ${currentRoute === "creditos"
+                  ? "bg-zinc-200 text-zinc-950 font-bold"
+                  : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200/80"
+                  }`}
               >
                 <Award className="w-3.5 h-3.5" />
                 Créditos

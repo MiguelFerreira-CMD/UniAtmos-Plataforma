@@ -1,9 +1,19 @@
 
-import "dotenv/config";
+import dotenv from "dotenv";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import express from "express";
 import { GoogleGenAI } from "@google/genai";
-import { UNIP_CAMPUSES } from "./src/data/unip-campuses.ts";
-import { fetchCampusWeather } from "./src/services/weather.ts";
+import { UNIP_CAMPUSES } from "./data/unip-campuses.ts";
+import { fetchCampusWeather } from "./services/weather.ts";
+
+// Carrega as variáveis de ambiente de backend/.env.
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+dotenv.config({
+  path: path.join(__dirname, ".env"),
+});
 
 const app = express();
 const PORT = 3001;
@@ -31,10 +41,14 @@ app.use((req, res, next) => {
 const apiKey = process.env.GEMINI_API_KEY?.trim() || "";
 
 if (!apiKey) {
-  console.warn("⚠️  Aviso: GEMINI_API_KEY não configurada no arquivo .env. O servidor continuará em execução.");
+  console.warn(
+    "Aviso: GEMINI_API_KEY não configurada em backend/.env."
+  );
 }
 
-const ai = new GoogleGenAI({ apiKey: apiKey || "UNCONFIGURED" });
+const ai = new GoogleGenAI({
+  apiKey: apiKey || "UNCONFIGURED",
+});
 
 // Instruções principais do Atmos.
 const systemInstruction = `
@@ -282,7 +296,7 @@ INSTRUÇÕES:
     if (!apiKey) {
       res.status(503).json({
         error:
-          "A chave GEMINI_API_KEY não está configurada no arquivo .env. Configure-a para receber respostas do Atmos com inteligência artificial.",
+          "A chave GEMINI_API_KEY não está configurada no arquivo backend/.env. Configure-a para receber respostas do Atmos com inteligência artificial.",
       });
       return;
     }

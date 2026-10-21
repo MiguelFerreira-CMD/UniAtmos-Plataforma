@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { UNIP_CAMPUSES, UnipCampus } from "./data/unip-campuses.ts";
+import { UNIP_CAMPUSES, UnipCampus } from "../../backend/data/unip-campuses.ts";
 import { AtmosNavbar, NavRoute } from "./components/AtmosNavbar.tsx";
-import { RobotHero, getCurrentTheme, ThemeColors } from "../components/ui/robot-hero.tsx";
+import { RobotHero, getCurrentTheme } from "../components/ui/robot-hero.tsx";
 import { AtmosChat } from "./components/AtmosChat.tsx";
 import { BlueprintGradientMesh } from "../components/ui/blueprint-gradient-mesh.tsx";
 import { AboutPage } from "./pages/AboutPage.tsx";
@@ -69,7 +69,7 @@ export default function App() {
       {/* 3. ROTEAMENTO DE CONTEÚDO */}
       {currentRoute === "home" && (
         <main className="flex-1 flex flex-col items-center w-full animate-in fade-in duration-300 relative z-10 min-h-0 overflow-hidden">
-          
+
           {/* TÍTULO E DESCRIÇÃO CENTRALIZADOS NO TOPO */}
           <div className="text-center space-y-1 z-10 select-none pt-4 sm:pt-6 pb-1 shrink-0">
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-zinc-950">
@@ -81,26 +81,23 @@ export default function App() {
           </div>
 
           <section
-            className={`w-full mx-auto px-4 sm:px-6 transition-all duration-700 ease-in-out flex-1 min-h-0 ${
-              isChatExpanded
-                ? "max-w-[1400px] pt-3 sm:pt-5 lg:pt-6 pb-6 flex flex-col lg:flex-row gap-8 lg:gap-12 items-start justify-center"
-                : "max-w-7xl pt-1 pb-6 flex flex-col items-center justify-center"
-            }`}
+            className={`w-full mx-auto px-4 sm:px-6 transition-all duration-700 ease-in-out flex-1 min-h-0 ${isChatExpanded
+              ? "max-w-[1400px] pt-3 sm:pt-5 lg:pt-6 pb-6 flex flex-col lg:flex-row gap-8 lg:gap-12 items-start justify-center"
+              : "max-w-7xl pt-1 pb-6 flex flex-col items-center justify-center"
+              }`}
           >
             {/* 1. ROBÔ ATMOS 3D (Tamanho aumentado e alinhado no topo com a caixa do chat) */}
             <div
-              className={`transition-all duration-700 ease-in-out flex flex-col items-center bg-transparent ${
-                isChatExpanded
-                  ? "w-full lg:w-[480px] xl:w-[540px] lg:sticky lg:top-20 shrink-0 lg:-mt-6 xl:-mt-8"
-                  : "w-full max-w-4xl"
-              }`}
+              className={`transition-all duration-700 ease-in-out flex flex-col items-center bg-transparent ${isChatExpanded
+                ? "w-full lg:w-[480px] xl:w-[540px] lg:sticky lg:top-20 shrink-0 lg:-mt-6 xl:-mt-8"
+                : "w-full max-w-4xl"
+                }`}
             >
               <div
-                className={`w-full relative flex items-center justify-center transition-all duration-700 pointer-events-auto bg-transparent ${
-                  isChatExpanded
-                    ? "h-[360px] sm:h-[440px] lg:h-[540px] xl:h-[580px]"
-                    : "h-[400px] sm:h-[480px] md:h-[530px]"
-                }`}
+                className={`w-full relative flex items-center justify-center transition-all duration-700 pointer-events-auto bg-transparent ${isChatExpanded
+                  ? "h-[360px] sm:h-[440px] lg:h-[540px] xl:h-[580px]"
+                  : "h-[400px] sm:h-[480px] md:h-[530px]"
+                  }`}
               >
                 <RobotHero
                   pantallaColor={theme.primary}
@@ -114,11 +111,10 @@ export default function App() {
 
             {/* 2. CHAT CLIMÁTICO ATMOS (Caixa aumentada, lado a lado e alinhada) */}
             <div
-              className={`transition-all duration-700 ease-in-out ${
-                isChatExpanded
-                  ? "flex-1 w-full min-w-0 max-w-3xl xl:max-w-4xl"
-                  : "w-full -mt-12 sm:-mt-16 md:-mt-20 z-20 relative flex justify-center pb-12"
-              }`}
+              className={`transition-all duration-700 ease-in-out ${isChatExpanded
+                ? "flex-1 w-full min-w-0 max-w-3xl xl:max-w-4xl"
+                : "w-full -mt-12 sm:-mt-16 md:-mt-20 z-20 relative flex justify-center pb-12"
+                }`}
             >
               <AtmosChat
                 theme={theme}

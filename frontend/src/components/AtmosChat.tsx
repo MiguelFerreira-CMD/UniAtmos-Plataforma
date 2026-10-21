@@ -11,7 +11,7 @@ import {
   RotateCcw,
   X,
 } from "lucide-react";
-import { ThemeColors } from "../../components/ui/robot-hero.tsx";
+import { ThemeColors } from "../../../components/ui/robot-hero.tsx";
 
 interface AtmosChatProps {
   theme: ThemeColors;
@@ -81,7 +81,7 @@ export function AtmosChat({
       if (recognitionRef.current) {
         try {
           recognitionRef.current.abort();
-        } catch (_) {}
+        } catch (_) { }
       }
 
       if (
@@ -200,7 +200,7 @@ export function AtmosChat({
     if (isListening && recognitionRef.current) {
       try {
         recognitionRef.current.stop();
-      } catch (_) {}
+      } catch (_) { }
 
       setIsListening(false);
     }
@@ -217,7 +217,7 @@ export function AtmosChat({
       if (recognitionRef.current) {
         try {
           recognitionRef.current.stop();
-        } catch (_) {}
+        } catch (_) { }
       }
 
       setIsListening(false);
@@ -342,7 +342,7 @@ export function AtmosChat({
     if (recognitionRef.current) {
       try {
         recognitionRef.current.abort();
-      } catch (_) {}
+      } catch (_) { }
     }
 
     finalTranscriptRef.current = "";
@@ -406,11 +406,10 @@ export function AtmosChat({
   return (
     <div className="w-full">
       <div
-        className={`w-full bg-white/95 backdrop-blur-xl rounded-2xl sm:rounded-3xl border border-white/95 p-4 sm:p-6 flex flex-col justify-between transition-all duration-500 ease-out shadow-[0_16px_40px_rgba(0,0,0,0.06)] ${
-          isChatExpanded
+        className={`w-full bg-white/95 backdrop-blur-xl rounded-2xl sm:rounded-3xl border border-white/95 p-4 sm:p-6 flex flex-col justify-between transition-all duration-500 ease-out shadow-[0_16px_40px_rgba(0,0,0,0.06)] ${isChatExpanded
             ? "min-h-[460px] sm:min-h-[520px] lg:min-h-[560px] max-h-[78vh]"
             : "min-h-[175px] sm:min-h-[190px]"
-        }`}
+          }`}
         style={{
           boxShadow: `0 16px 40px rgba(0, 0, 0, 0.06), 0 0 35px ${theme.glow}`,
         }}
@@ -442,20 +441,18 @@ export function AtmosChat({
 
         {/* Lista de mensagens com avatares e rolagem */}
         <div
-          className={`overflow-y-auto overscroll-contain space-y-3.5 pr-1.5 py-1 scrollbar-thin scrollbar-thumb-zinc-300 hover:scrollbar-thumb-zinc-400 scrollbar-track-transparent transition-all duration-500 ${
-            isChatExpanded
+          className={`overflow-y-auto overscroll-contain space-y-3.5 pr-1.5 py-1 scrollbar-thin scrollbar-thumb-zinc-300 hover:scrollbar-thumb-zinc-400 scrollbar-track-transparent transition-all duration-500 ${isChatExpanded
               ? "flex-1 min-h-[300px] max-h-[calc(78vh-110px)]"
               : "h-[96px] sm:h-[108px]"
-          }`}
+            }`}
         >
           {messages.map((msg) => (
             <div
               key={msg.id}
-              className={`flex items-start gap-2.5 sm:gap-3 w-full animate-in fade-in duration-300 ${
-                msg.sender === "user"
+              className={`flex items-start gap-2.5 sm:gap-3 w-full animate-in fade-in duration-300 ${msg.sender === "user"
                   ? "justify-end"
                   : "justify-start"
-              }`}
+                }`}
             >
               {/* Avatar do Atmos */}
               {msg.sender === "bot" && (
@@ -477,18 +474,16 @@ export function AtmosChat({
 
               {/* Conteúdo da mensagem */}
               <div
-                className={`flex flex-col ${
-                  msg.sender === "user"
+                className={`flex flex-col ${msg.sender === "user"
                     ? "items-end max-w-[85%] sm:max-w-[78%]"
                     : "items-start max-w-[85%] sm:max-w-[78%]"
-                }`}
+                  }`}
               >
                 <div
-                  className={`rounded-2xl px-4 py-2.5 text-xs sm:text-sm font-medium leading-relaxed shadow-2xs ${
-                    msg.sender === "user"
+                  className={`rounded-2xl px-4 py-2.5 text-xs sm:text-sm font-medium leading-relaxed shadow-2xs ${msg.sender === "user"
                       ? "bg-zinc-950 text-white rounded-tr-xs"
                       : "bg-zinc-100/95 text-zinc-900 border border-zinc-200/70 rounded-tl-xs"
-                  }`}
+                    }`}
                 >
                   {msg.text}
                 </div>
@@ -600,22 +595,20 @@ export function AtmosChat({
         {/* Formulário de entrada */}
         <form onSubmit={handleSubmit} className="w-full pt-1.5">
           <div
-            className={`flex items-center gap-2 rounded-xl p-1.5 sm:p-2 transition-all ${
-              isListening
+            className={`flex items-center gap-2 rounded-xl p-1.5 sm:p-2 transition-all ${isListening
                 ? "bg-rose-50/80 border-2 border-rose-500 shadow-sm"
                 : "bg-zinc-50 border border-zinc-200/90 focus-within:bg-white focus-within:border-zinc-400"
-            }`}
+              }`}
           >
             {/* Botão de microfone */}
             <button
               type="button"
               onClick={handleToggleVoice}
               disabled={isLoading}
-              className={`p-1.5 sm:p-2 rounded-lg transition-all cursor-pointer shrink-0 ${
-                isListening
+              className={`p-1.5 sm:p-2 rounded-lg transition-all cursor-pointer shrink-0 ${isListening
                   ? "bg-rose-600 text-white shadow-sm animate-pulse ring-2 ring-rose-300"
                   : "text-zinc-500 hover:text-zinc-900 bg-white hover:bg-zinc-100 border border-zinc-200/70"
-              }`}
+                }`}
               title={
                 isListening
                   ? "Finalizar gravação e manter texto"

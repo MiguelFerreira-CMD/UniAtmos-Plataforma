@@ -1,5 +1,5 @@
 
-import type { UnipCampus } from "../data/unip-campuses.ts";
+import type { UnipCampus } from "../../backend/data/unip-campuses.ts";
 
 export interface WeatherData {
   temperature: number;
