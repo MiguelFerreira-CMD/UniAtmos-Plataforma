@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { UNIP_CAMPUSES, UnipCampus } from "../../backend/data/unip-campuses.ts";
+import { UNIP_CAMPUSES, UnipCampus } from "./data/unip-campuses.ts";
 import { AtmosNavbar, NavRoute } from "./components/AtmosNavbar.tsx";
 import { RobotHero, getCurrentTheme } from "../components/ui/robot-hero.tsx";
 import { AtmosChat } from "./components/AtmosChat.tsx";

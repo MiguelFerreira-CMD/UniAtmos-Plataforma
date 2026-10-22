@@ -9,3 +9,10 @@ coverage/
 # Variáveis de ambiente
 .env*
 !.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/

@@ -1,8 +1,9 @@
+
 "use client";
 
 import { useMemo, useRef, useState, useEffect } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Environment, ContactShadows } from "@react-three/drei";
+import { Environment } from "@react-three/drei";
 import * as THREE from "three";
 
 export interface ThemeColors {
@@ -14,38 +15,41 @@ export interface ThemeColors {
 }
 
 /**
- * Cores automáticas estritamente baseadas no horário:
- * 🌅 06:00–11:59: #7DD3FC / #BAE6FD / #E0F2FE
- * ☀️ 12:00–17:59: #FBBF24 / #FDE68A / #FEF3C7
- * 🌙 18:00–05:59: #818CF8 / #4F46E5 / #C7D2FE
+ * Cores automáticas baseadas no horário local:
+ * Manhã: 06:00–11:59
+ * Tarde: 12:00–17:59
+ * Noite: 18:00–05:59
  */
 export function getCurrentTheme(): ThemeColors {
   const hours = new Date().getHours();
+
   if (hours >= 6 && hours < 12) {
     return {
       period: "morning",
-      primary: "#7DD3FC",
-      secondary: "#BAE6FD",
-      light: "#E0F2FE",
-      glow: "rgba(125, 211, 252, 0.35)",
-    };
-  } else if (hours >= 12 && hours < 18) {
-    return {
-      period: "afternoon",
-      primary: "#FBBF24",
-      secondary: "#FDE68A",
-      light: "#FEF3C7",
-      glow: "rgba(251, 191, 36, 0.35)",
-    };
-  } else {
-    return {
-      period: "night",
-      primary: "#818CF8",
-      secondary: "#4F46E5",
-      light: "#C7D2FE",
-      glow: "rgba(129, 140, 248, 0.35)",
+      primary: "#0284C7",
+      secondary: "#0369A1",
+      light: "#38BDF8",
+      glow: "rgba(2, 132, 199, 0.35)",
     };
   }
+
+  if (hours >= 12 && hours < 18) {
+    return {
+      period: "afternoon",
+      primary: "#D97706",
+      secondary: "#B45309",
+      light: "#F59E0B",
+      glow: "rgba(217, 119, 6, 0.35)",
+    };
+  }
+
+  return {
+    period: "night",
+    primary: "#000000",
+    secondary: "#111111",
+    light: "#1A1A1A",
+    glow: "rgba(0, 0, 0, 0.5)",
+  };
 }
 
 function ResponsiveGroup({
@@ -57,6 +61,7 @@ function ResponsiveGroup({
 }) {
   const { viewport } = useThree();
   const s = Math.min(1.48, viewport.width / 2.38) * scale;
+
   return <group scale={s}>{children}</group>;
 }
 
@@ -71,6 +76,7 @@ function GlassCapsule({
 }) {
   const materialRef = useRef<THREE.ShaderMaterial>(null);
   const currentColor = useRef(new THREE.Color(color));
+  const targetColor = useMemo(() => new THREE.Color(color), [color]);
 
   const uniforms = useMemo(
     () => ({
@@ -82,12 +88,13 @@ function GlassCapsule({
   );
 
   useFrame((_, delta) => {
-    if (materialRef.current) {
-      currentColor.current.lerp(new THREE.Color(color), Math.min(1, delta * 3.5));
-      materialRef.current.uniforms.color.value.copy(currentColor.current);
-      materialRef.current.uniforms.power.value = power;
-      materialRef.current.uniforms.intensity.value = intensity;
-    }
+    if (!materialRef.current) return;
+
+    currentColor.current.lerp(targetColor, Math.min(1, delta * 3.5));
+
+    materialRef.current.uniforms.color.value.copy(currentColor.current);
+    materialRef.current.uniforms.power.value = power;
+    materialRef.current.uniforms.intensity.value = intensity;
   });
 
   return (
@@ -99,6 +106,7 @@ function GlassCapsule({
         vertexShader={`
           varying vec3 vNormal;
           varying vec3 vViewPosition;
+
           void main() {
             vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
             vViewPosition = -mvPosition.xyz;
@@ -110,17 +118,21 @@ function GlassCapsule({
           uniform vec3 color;
           uniform float power;
           uniform float intensity;
+
           varying vec3 vNormal;
           varying vec3 vViewPosition;
+
           void main() {
             vec3 normal = normalize(vNormal);
             vec3 viewDir = normalize(vViewPosition);
+
             float fresnel = 1.0 - max(dot(viewDir, normal), 0.0);
             fresnel = pow(fresnel, power);
+
             gl_FragColor = vec4(color, fresnel * intensity);
           }
         `}
-        transparent={true}
+        transparent
         blending={THREE.AdditiveBlending}
         depthWrite={false}
       />
@@ -132,19 +144,23 @@ const earBaseMat = new THREE.MeshStandardMaterial({
   color: "#f0f0f0",
   roughness: 0.5,
 });
+
 const earRingMat = new THREE.MeshStandardMaterial({
   color: "#ffffff",
   roughness: 0.3,
 });
+
 const earCenterMat = new THREE.MeshStandardMaterial({
   color: "#cccccc",
   roughness: 0.8,
 });
+
 const antennaBaseMat = new THREE.MeshStandardMaterial({
   color: "#999999",
   roughness: 0.4,
   metalness: 0.5,
 });
+
 const antennaStickMat = new THREE.MeshStandardMaterial({
   color: "#d0d0d0",
   roughness: 0.4,
@@ -211,6 +227,7 @@ function RobotEar({
         >
           <cylinderGeometry args={[0.006, 0.008, 0.02, 16]} />
         </mesh>
+
         <mesh
           position={[0, 0.06, 0]}
           castShadow
@@ -219,6 +236,7 @@ function RobotEar({
         >
           <cylinderGeometry args={[0.003, 0.003, 0.1, 8]} />
         </mesh>
+
         <mesh position={[0, 0.11, 0]} castShadow receiveShadow>
           <sphereGeometry args={[0.006, 16, 16]} />
           <meshStandardMaterial
@@ -251,25 +269,54 @@ function RobotMouth({
 
   useFrame(({ clock }) => {
     if (!mouthRef.current) return;
+
     const t = clock.getElapsedTime();
 
     if (isTalking) {
-      // Vibração e modulação sutil simulando fala robótica
-      const flutter = Math.sin(t * 22) * 0.45 + Math.sin(t * 37) * 0.35;
-      const targetScaleY = THREE.MathUtils.clamp(1.1 + flutter, 0.4, 2.8);
-      const targetScaleX = THREE.MathUtils.clamp(1.0 + Math.cos(t * 16) * 0.2, 0.85, 1.25);
+      const flutter =
+        Math.sin(t * 22) * 0.45 + Math.sin(t * 37) * 0.35;
 
-      mouthRef.current.scale.y = THREE.MathUtils.lerp(mouthRef.current.scale.y, targetScaleY, 0.35);
-      mouthRef.current.scale.x = THREE.MathUtils.lerp(mouthRef.current.scale.x, targetScaleX, 0.35);
+      const targetScaleY = THREE.MathUtils.clamp(
+        1.1 + flutter,
+        0.4,
+        2.8,
+      );
+
+      const targetScaleX = THREE.MathUtils.clamp(
+        1.0 + Math.cos(t * 16) * 0.2,
+        0.85,
+        1.25,
+      );
+
+      mouthRef.current.scale.y = THREE.MathUtils.lerp(
+        mouthRef.current.scale.y,
+        targetScaleY,
+        0.35,
+      );
+
+      mouthRef.current.scale.x = THREE.MathUtils.lerp(
+        mouthRef.current.scale.x,
+        targetScaleX,
+        0.35,
+      );
 
       if (matRef.current) {
         const glow = 2.0 + Math.sin(t * 20) * 0.5;
         matRef.current.color.setRGB(glow, glow, glow);
       }
     } else {
-      // Estado neutro: boca fechada em linha digital serena
-      mouthRef.current.scale.y = THREE.MathUtils.lerp(mouthRef.current.scale.y, 0.35, 0.15);
-      mouthRef.current.scale.x = THREE.MathUtils.lerp(mouthRef.current.scale.x, 1.0, 0.15);
+      mouthRef.current.scale.y = THREE.MathUtils.lerp(
+        mouthRef.current.scale.y,
+        0.35,
+        0.15,
+      );
+
+      mouthRef.current.scale.x = THREE.MathUtils.lerp(
+        mouthRef.current.scale.x,
+        1.0,
+        0.15,
+      );
+
       if (matRef.current) {
         matRef.current.color.setRGB(1.8, 1.8, 1.8);
       }
@@ -284,7 +331,7 @@ function RobotMouth({
           ref={matRef}
           color={new THREE.Color(2.0, 2.0, 2.0)}
           toneMapped={false}
-          transparent={true}
+          transparent
         />
       </mesh>
     </group>
@@ -328,12 +375,14 @@ function RobotEye({
     const g = 0.005;
 
     const tPath = new THREE.CurvePath<THREE.Vector3>();
+
     tPath.add(
       new THREE.LineCurve3(
         new THREE.Vector3(-w, g, 0),
         new THREE.Vector3(-w, h - r, 0),
       ),
     );
+
     tPath.add(
       new THREE.QuadraticBezierCurve3(
         new THREE.Vector3(-w, h - r, 0),
@@ -341,12 +390,14 @@ function RobotEye({
         new THREE.Vector3(-w + r, h, 0),
       ),
     );
+
     tPath.add(
       new THREE.LineCurve3(
         new THREE.Vector3(-w + r, h, 0),
         new THREE.Vector3(w - r, h, 0),
       ),
     );
+
     tPath.add(
       new THREE.QuadraticBezierCurve3(
         new THREE.Vector3(w - r, h, 0),
@@ -354,6 +405,7 @@ function RobotEye({
         new THREE.Vector3(w, h - r, 0),
       ),
     );
+
     tPath.add(
       new THREE.LineCurve3(
         new THREE.Vector3(w, h - r, 0),
@@ -362,12 +414,14 @@ function RobotEye({
     );
 
     const bPath = new THREE.CurvePath<THREE.Vector3>();
+
     bPath.add(
       new THREE.LineCurve3(
         new THREE.Vector3(-w, -g, 0),
         new THREE.Vector3(-w, -(h - r), 0),
       ),
     );
+
     bPath.add(
       new THREE.QuadraticBezierCurve3(
         new THREE.Vector3(-w, -(h - r), 0),
@@ -375,12 +429,14 @@ function RobotEye({
         new THREE.Vector3(-w + r, -h, 0),
       ),
     );
+
     bPath.add(
       new THREE.LineCurve3(
         new THREE.Vector3(-w + r, -h, 0),
         new THREE.Vector3(w - r, -h, 0),
       ),
     );
+
     bPath.add(
       new THREE.QuadraticBezierCurve3(
         new THREE.Vector3(w - r, -h, 0),
@@ -388,6 +444,7 @@ function RobotEye({
         new THREE.Vector3(w, -(h - r), 0),
       ),
     );
+
     bPath.add(
       new THREE.LineCurve3(
         new THREE.Vector3(w, -(h - r), 0),
@@ -399,10 +456,16 @@ function RobotEye({
   }, []);
 
   return (
-    <group ref={groupRef} position={position} rotation={rotation} scale={scale}>
+    <group
+      ref={groupRef}
+      position={position}
+      rotation={rotation}
+      scale={scale}
+    >
       <mesh material={eyeMat}>
         <tubeGeometry args={[topPath, 20, 0.0035, 8, false]} />
       </mesh>
+
       <mesh material={eyeMat}>
         <tubeGeometry args={[bottomPath, 20, 0.0035, 8, false]} />
       </mesh>
@@ -419,14 +482,17 @@ function generatePbrTexturesAsync(): Promise<{
       const size = 512;
       const canvasC = document.createElement("canvas");
       const canvasB = document.createElement("canvas");
+
       canvasC.width = canvasB.width = size;
       canvasC.height = canvasB.height = size;
+
       const ctxC = canvasC.getContext("2d");
       const ctxB = canvasB.getContext("2d");
 
       if (ctxC && ctxB) {
         ctxC.fillStyle = "#dcdcdc";
         ctxC.fillRect(0, 0, size, size);
+
         ctxB.fillStyle = "#808080";
         ctxB.fillRect(0, 0, size, size);
 
@@ -450,11 +516,13 @@ function generatePbrTexturesAsync(): Promise<{
 
       const texC = new THREE.CanvasTexture(canvasC);
       const texB = new THREE.CanvasTexture(canvasB);
+
       texC.wrapS = texB.wrapS = THREE.RepeatWrapping;
       texC.wrapT = texB.wrapT = THREE.RepeatWrapping;
 
       texC.repeat.set(6, 3);
       texB.repeat.set(6, 3);
+
       texC.needsUpdate = true;
       texB.needsUpdate = true;
 
@@ -476,8 +544,13 @@ function RobotPrototype({
     innerR: 0.24,
     innerDropH: 0.03,
   },
-  bodyParams = { bodyBevelR: 0.21, bodyBevelY: 0.38, bodyBevelT: 0.015 },
+  bodyParams = {
+    bodyBevelR: 0.21,
+    bodyBevelY: 0.38,
+    bodyBevelT: 0.015,
+  },
   color = "#c4c4c4",
+  headColor = "#7DD3FC",
   pantallaColor = "#7DD3FC",
   pantallaBrillo = 1.3,
   blinkCycle = 3.0,
@@ -487,6 +560,7 @@ function RobotPrototype({
   neckParams?: Record<string, number>;
   bodyParams?: Record<string, number>;
   color?: string;
+  headColor?: string;
   pantallaColor?: string;
   pantallaBrillo?: number;
   blinkCycle?: number;
@@ -495,31 +569,46 @@ function RobotPrototype({
 }) {
   const bodyRef = useRef<THREE.Group>(null);
   const headRef = useRef<THREE.Group>(null);
+  const headMaterialRef = useRef<THREE.MeshStandardMaterial>(null);
   const eyesGroupRef = useRef<THREE.Group>(null);
+
   const windowPointer = useRef({ x: 0, y: 0 });
 
+  const targetHeadColor = useMemo(
+    () => new THREE.Color(headColor),
+    [headColor],
+  );
+
   useEffect(() => {
-    const handlePointerMove = (e: MouseEvent) => {
-      // Coordenadas normalizadas (-1 a 1) por toda a janela do navegador
+    const handlePointerMove = (e: PointerEvent) => {
       const x = (e.clientX / window.innerWidth) * 2 - 1;
       const y = -(e.clientY / window.innerHeight) * 2 + 1;
+
       windowPointer.current.x = x;
       windowPointer.current.y = y;
     };
 
-    window.addEventListener("pointermove", handlePointerMove, { passive: true });
-    return () => window.removeEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointermove", handlePointerMove, {
+      passive: true,
+    });
+
+    return () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+    };
   }, []);
 
   const [textures, setTextures] = useState<{
     colorMap: THREE.CanvasTexture | null;
     bumpMap: THREE.CanvasTexture | null;
-  }>({ colorMap: null, bumpMap: null });
+  }>({
+    colorMap: null,
+    bumpMap: null,
+  });
 
   const design = {
-    pantallaColor: pantallaColor,
+    pantallaColor,
     pantallaGrosor: 3.8,
-    pantallaBrillo: pantallaBrillo,
+    pantallaBrillo,
     separacionOjos: 0.07,
     tamañoOrejas: 1.3,
     escalaOjos: 1.1,
@@ -535,16 +624,23 @@ function RobotPrototype({
     const dt = Math.min(delta, 0.1);
     const t = state.clock.getElapsedTime();
 
-    // Rastreia o ponteiro pela tela inteira independentemente da distância do robô
+    // Muda a cor da própria cabeça suavemente.
+    if (headMaterialRef.current) {
+      headMaterialRef.current.color.lerp(
+        targetHeadColor,
+        Math.min(1, dt * 2.5),
+      );
+    }
+
     const px = windowPointer.current.x;
     const py = windowPointer.current.y;
 
-    // Animações naturais de respiração e micro-movimento
-    const idleRotY = Math.sin(t * 0.45) * 0.045 + Math.sin(t * 1.1) * 0.02;
+    const idleRotY =
+      Math.sin(t * 0.45) * 0.045 + Math.sin(t * 1.1) * 0.02;
+
     const idleRotX = Math.sin(t * 0.65) * 0.025 + 0.01;
     const idleRotZ = Math.cos(t * 0.4) * 0.012;
 
-    // Cabeça se move suavemente na direção do mouse
     const targetHeadRotY = px * 0.48 + idleRotY;
     const targetHeadRotX = -py * 0.3 + idleRotX;
     const targetHeadRotZ = -px * 0.07 + idleRotZ;
@@ -554,18 +650,20 @@ function RobotPrototype({
       targetHeadRotY,
       dt * 4.5,
     );
+
     headRef.current.rotation.x = THREE.MathUtils.lerp(
       headRef.current.rotation.x,
       targetHeadRotX,
       dt * 4.5,
     );
+
     headRef.current.rotation.z = THREE.MathUtils.lerp(
       headRef.current.rotation.z,
       targetHeadRotZ,
       dt * 4.5,
     );
 
-    // Olhos acompanhando o cursor mesmo a longas distâncias
+    // Olhos acompanham o cursor.
     if (eyesGroupRef.current) {
       const eyeTargetX = px * 0.022;
       const eyeTargetY = -0.02 + py * 0.017;
@@ -577,16 +675,19 @@ function RobotPrototype({
         eyeTargetX,
         dt * 6.5,
       );
+
       eyesGroupRef.current.position.y = THREE.MathUtils.lerp(
         eyesGroupRef.current.position.y,
         eyeTargetY,
         dt * 6.5,
       );
+
       eyesGroupRef.current.rotation.y = THREE.MathUtils.lerp(
         eyesGroupRef.current.rotation.y,
         eyeRotY,
         dt * 6.5,
       );
+
       eyesGroupRef.current.rotation.x = THREE.MathUtils.lerp(
         eyesGroupRef.current.rotation.x,
         eyeRotX,
@@ -597,6 +698,7 @@ function RobotPrototype({
 
   useEffect(() => {
     let mounted = true;
+
     let generatedMaps: {
       colorMap: THREE.CanvasTexture;
       bumpMap: THREE.CanvasTexture;
@@ -614,6 +716,7 @@ function RobotPrototype({
 
     return () => {
       mounted = false;
+
       if (generatedMaps) {
         generatedMaps.colorMap.dispose();
         generatedMaps.bumpMap.dispose();
@@ -623,41 +726,54 @@ function RobotPrototype({
 
   const neckProfile = useMemo(() => {
     const points = [];
+
     points.push(new THREE.Vector2(neckParams.innerR, neckParams.baseH));
     points.push(new THREE.Vector2(neckParams.baseR, neckParams.baseH));
     points.push(new THREE.Vector2(neckParams.midR, neckParams.midH));
-    points.push(new THREE.Vector2(neckParams.lipBottomR, neckParams.lipBottomH));
-    points.push(new THREE.Vector2(neckParams.lipTopR, neckParams.lipTopH));
-    points.push(new THREE.Vector2(neckParams.innerR, neckParams.lipTopH));
+
+    points.push(
+      new THREE.Vector2(neckParams.lipBottomR, neckParams.lipBottomH),
+    );
+
+    points.push(
+      new THREE.Vector2(neckParams.lipTopR, neckParams.lipTopH),
+    );
+
+    points.push(
+      new THREE.Vector2(neckParams.innerR, neckParams.lipTopH),
+    );
+
     points.push(
       new THREE.Vector2(
         neckParams.innerR,
         neckParams.lipTopH - neckParams.innerDropH,
       ),
     );
+
     return points;
   }, [neckParams]);
-
-  const headMat = useMemo(() => {
-    return new THREE.MeshStandardMaterial({
-      color: "#111111",
-      roughness: 1.0,
-      metalness: 0.0,
-    });
-  }, []);
 
   if (!textures.colorMap) return null;
 
   return (
     <group ref={bodyRef} position={[0, -0.3, 0]}>
-      {/* Corpo estável */}
+      {/* Corpo do robô: mantém a cor original. */}
       <mesh castShadow receiveShadow>
         <sphereGeometry
-          args={[0.43, 64, 64, 0, Math.PI * 2, Math.PI * 0.15, Math.PI * 0.85]}
+          args={[
+            0.43,
+            64,
+            64,
+            0,
+            Math.PI * 2,
+            Math.PI * 0.15,
+            Math.PI * 0.85,
+          ]}
         />
+
         <meshStandardMaterial
           color={design.colorChasis}
-          map={textures.colorMap || undefined}
+          map={textures.colorMap}
           bumpMap={textures.bumpMap || undefined}
           bumpScale={0.005}
           roughness={1.0}
@@ -674,11 +790,17 @@ function RobotPrototype({
           receiveShadow
         >
           <torusGeometry
-            args={[bodyParams.bodyBevelR, bodyParams.bodyBevelT, 32, 64]}
+            args={[
+              bodyParams.bodyBevelR,
+              bodyParams.bodyBevelT,
+              32,
+              64,
+            ]}
           />
+
           <meshStandardMaterial
             color={design.colorChasis}
-            map={textures.colorMap || undefined}
+            map={textures.colorMap}
             bumpMap={textures.bumpMap || undefined}
             bumpScale={0.005}
             roughness={1.0}
@@ -690,9 +812,10 @@ function RobotPrototype({
 
       <mesh position={[0, 0.38, 0]} receiveShadow castShadow>
         <latheGeometry args={[neckProfile, 64]} />
+
         <meshStandardMaterial
           color={design.colorChasis}
-          map={textures.colorMap || undefined}
+          map={textures.colorMap}
           bumpMap={textures.bumpMap || undefined}
           bumpScale={0.005}
           roughness={1.0}
@@ -701,10 +824,19 @@ function RobotPrototype({
         />
       </mesh>
 
-      {/* Cabeça que acompanha o mouse com movimentos suaves */}
+      {/* Cabeça com cor dinâmica conforme o período do dia. */}
       <group ref={headRef} position={[0, design.alturaCabeza, 0]}>
-        <mesh material={headMat} castShadow receiveShadow>
-          <sphereGeometry args={[0.28, 64, 64, 0, Math.PI * 2, 0, Math.PI]} />
+        <mesh castShadow receiveShadow>
+          <sphereGeometry
+            args={[0.28, 64, 64, 0, Math.PI * 2, 0, Math.PI]}
+          />
+
+          <meshStandardMaterial
+            ref={headMaterialRef}
+            color={headColor}
+            roughness={0.45}
+            metalness={0.08}
+          />
         </mesh>
 
         <GlassCapsule
@@ -713,7 +845,7 @@ function RobotPrototype({
           intensity={design.pantallaBrillo}
         />
 
-        {/* Olhos acompanhando o cursor */}
+        {/* Olhos acompanham o cursor. */}
         <group ref={eyesGroupRef} position={[0, -0.02, 0.29]}>
           <RobotEye
             position={[-design.separacionOjos, 0, 0]}
@@ -722,6 +854,7 @@ function RobotPrototype({
             blinkDuration={design.parpadeoDuracion}
             blinkCycle={design.parpadeoFrecuencia}
           />
+
           <RobotEye
             position={[design.separacionOjos, 0, 0]}
             rotation={[0, 0.2, 0]}
@@ -729,15 +862,20 @@ function RobotPrototype({
             blinkDuration={design.parpadeoDuracion}
             blinkCycle={design.parpadeoFrecuencia}
           />
-          <RobotMouth isTalking={isTalking} color={design.pantallaColor} />
+
+          <RobotMouth
+            isTalking={isTalking}
+            color={design.pantallaColor}
+          />
         </group>
 
         <RobotEar
           position={[-0.29, 0, 0]}
-          isLeft={true}
+          isLeft
           scale={design.tamañoOrejas}
           tipColor={design.pantallaColor}
         />
+
         <RobotEar
           position={[0.29, 0, 0]}
           isLeft={false}
@@ -764,7 +902,7 @@ export function RobotHero({
   color = "#c4c4c4",
   scale = 1.35,
   pantallaColor,
-  pantallaBrillo = 1.3,
+  pantallaBrilho = 1.3,
   blinkCycle = 3.0,
   metalness = 0.0,
   isTalking = false,
@@ -772,7 +910,28 @@ export function RobotHero({
 }: RobotHeroProps = {}) {
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const theme = useMemo(() => getCurrentTheme(), []);
+  const [theme, setTheme] = useState<ThemeColors>(() =>
+    getCurrentTheme(),
+  );
+
+  // Atualiza o tema a cada minuto e quando a aba volta a ficar visível.
+  useEffect(() => {
+    const updateTheme = () => {
+      setTheme(getCurrentTheme());
+    };
+
+    updateTheme();
+
+    const intervalId = window.setInterval(updateTheme, 60_000);
+
+    document.addEventListener("visibilitychange", updateTheme);
+
+    return () => {
+      window.clearInterval(intervalId);
+      document.removeEventListener("visibilitychange", updateTheme);
+    };
+  }, []);
+
   const effectivePantallaColor = pantallaColor || theme.primary;
 
   return (
@@ -821,8 +980,9 @@ export function RobotHero({
               bodyBevelT: 0.025,
             }}
             color={color}
+            headColor={theme.primary}
             pantallaColor={effectivePantallaColor}
-            pantallaBrillo={pantallaBrillo}
+            pantallaBrillo={pantallaBrilho}
             blinkCycle={blinkCycle}
             metalness={metalness}
             isTalking={isTalking}
