@@ -1,8 +1,8 @@
 # 🌤️ UniAtmos
 
-> **Conheça o clima do Brasil através do Atmos.**
+> **Conheça o clima de Sorocaba através do Atmos.**
 
-O **UniAtmos** é uma interface interativa de informações meteorológicas desenvolvida para apresentar dados e explicações sobre o clima de diferentes regiões e unidades do Brasil de forma simples, visual e amigável.
+O **UniAtmos** é uma interface interativa de informações meteorológicas desenvolvida para apresentar dados e explicações sobre o clima de Sorocaba de forma simples, visual e amigável.
 
 No centro da experiência está o **Atmos**, um robô virtual que interage com o usuário através de um chatbot e responde perguntas relacionadas à meteorologia e ao clima.
 
