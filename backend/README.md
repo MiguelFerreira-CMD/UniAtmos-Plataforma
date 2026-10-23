@@ -23,7 +23,7 @@ pip install -r backend/requirements.txt
 Na pasta principal do projeto, execute:
 
 ```bash
-python -m uvicorn backend.server:app --reload --port 3001
+python -m uvicorn backend.main:app --reload --port 3001
 ```
 
 O backend estará disponível em `http://localhost:3001`.
