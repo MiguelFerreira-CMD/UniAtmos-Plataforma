@@ -1,5 +1,6 @@
 
 import { useState, useRef, useEffect, type FormEvent } from "react";
+
 import {
   Send,
   Volume2,
@@ -12,6 +13,19 @@ import {
   Check,
 } from "lucide-react";
 
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+} from "recharts";
+
 import { type ThemeColors } from "../../../components/ui/robot-hero.tsx";
 
 interface AtmosChatProps {
@@ -21,10 +35,29 @@ interface AtmosChatProps {
   onAtmosSpeakingChange?: (isSpeaking: boolean) => void;
 }
 
+interface WeatherForecast {
+  day?: string;
+  condition?: string;
+  minTemp?: number | null;
+  maxTemp?: number | null;
+  rainProbability?: number | null;
+}
+
+interface WeatherData {
+  temperature?: number | null;
+  apparentTemperature?: number | null;
+  humidity?: number | null;
+  windSpeed?: number | null;
+  condition?: string;
+  fetchedAt?: string;
+  forecast?: WeatherForecast[];
+}
+
 interface ChatMessage {
   id: string;
   text: string;
   sender: "user" | "bot";
+  weather?: WeatherData | null;
 }
 
 interface ApiError {
@@ -33,21 +66,79 @@ interface ApiError {
   message?: string;
 }
 
+type ChartType = "temperature" | "rain" | "wind";
+type ChartPeriod = "today" | "tomorrow" | "2days" | "3days";
+
+interface ChartDataPoint {
+  day: string;
+  minTemp?: number;
+  maxTemp?: number;
+  avgTemp?: number;
+  rainProbability?: number;
+  windSpeed?: number;
+}
+
 const API_URL = "http://localhost:3001";
 
 function cleanMessageText(text: string): string {
   return text
-    .replace(/\\([*_`~[\]()])/g, "$1")
+    .replace(/\\([*_\`~[\]()])/g, "$1")
     .replace(/```[a-zA-Z]*\n?/g, "")
     .replace(/\*\*(.*?)\*\*/gs, "$1")
     .replace(/__(.*?)__/gs, "$1")
     .replace(/(?<!\*)\*([^*\n]+)\*(?!\*)/g, "$1")
     .replace(/(?<!_)_([^_\n]+)_(?!_)/g, "$1")
     .replace(/`([^`]+)`/g, "$1")
-    .replace(/\[\s*\]/g, "")
+    .replace(/\\[\s*\\]/g, "")
     .replace(/[ \t]{2,}/g, " ")
     .replace(/[ \t]+([,.;!?])/g, "$1")
     .trim();
+}
+
+function getChartData(
+  weather: WeatherData,
+  period: ChartPeriod,
+): ChartDataPoint[] {
+  const forecasts = Array.isArray(weather.forecast)
+    ? weather.forecast
+    : [];
+
+  const selectedForecasts =
+    period === "tomorrow"
+      ? forecasts.slice(1, 2)
+      : forecasts.slice(
+          0,
+          period === "today" ? 1 : period === "2days" ? 2 : 3,
+        );
+
+  return selectedForecasts.map((forecast, index) => {
+    const point: ChartDataPoint = {
+      day: forecast.day ?? `Dia ${index + 1}`,
+    };
+
+    if (typeof forecast.minTemp === "number") {
+      point.minTemp = forecast.minTemp;
+    }
+
+    if (typeof forecast.maxTemp === "number") {
+      point.maxTemp = forecast.maxTemp;
+    }
+
+    if (
+      typeof forecast.minTemp === "number" &&
+      typeof forecast.maxTemp === "number"
+    ) {
+      point.avgTemp = Number(
+        ((forecast.minTemp + forecast.maxTemp) / 2).toFixed(1),
+      );
+    }
+
+    if (typeof forecast.rainProbability === "number") {
+      point.rainProbability = forecast.rainProbability;
+    }
+
+    return point;
+  });
 }
 
 export function AtmosChat({
@@ -72,6 +163,12 @@ export function AtmosChat({
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
 
+  const [openChartMessageId, setOpenChartMessageId] = useState<string | null>(
+    null,
+  );
+  const [chartType, setChartType] = useState<ChartType>("temperature");
+  const [chartPeriod, setChartPeriod] = useState<ChartPeriod>("3days");
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const isMountedRef = useRef(true);
@@ -91,7 +188,7 @@ export function AtmosChat({
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, isLoading]);
+  }, [messages, isLoading, openChartMessageId]);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -168,6 +265,7 @@ export function AtmosChat({
 
       const data = (await response.json()) as {
         reply?: string;
+        weather?: WeatherData | null;
       } & ApiError;
 
       if (!response.ok) {
@@ -197,6 +295,7 @@ export function AtmosChat({
           id: `bot-${Date.now()}`,
           text: cleanReply,
           sender: "bot",
+          weather: data.weather ?? null,
         },
       ]);
     } catch (error) {
@@ -253,6 +352,9 @@ export function AtmosChat({
 
     setSpeakingMessageId(null);
     setCopiedMessageId(null);
+    setOpenChartMessageId(null);
+    setChartType("temperature");
+    setChartPeriod("3days");
 
     setMessages([
       {
@@ -377,11 +479,300 @@ export function AtmosChat({
                   {cleanMessageText(msg.text)}
                 </div>
 
+                {msg.sender === "bot" && msg.weather && (
+                  <div className="mt-2 w-full">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setOpenChartMessageId((current) =>
+                          current === msg.id ? null : msg.id,
+                        )
+                      }
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-50 cursor-pointer"
+                      aria-expanded={openChartMessageId === msg.id}
+                    >
+                      📊{" "}
+                      {openChartMessageId === msg.id
+                        ? "Fechar gráfico"
+                        : "Visualizar gráfico"}
+                    </button>
+
+                    {openChartMessageId === msg.id && (
+                      <div className="mt-2 w-full min-w-0 rounded-xl border border-zinc-200 bg-white p-3">
+                        <div className="mb-3 flex flex-wrap gap-2">
+                          <select
+                            value={chartType}
+                            onChange={(e) =>
+                              setChartType(e.target.value as ChartType)
+                            }
+                            className="max-w-full rounded-lg border border-zinc-200 bg-white px-2 py-1.5 text-xs text-zinc-700"
+                            aria-label="Tipo de gráfico"
+                          >
+                            <option value="temperature">Temperatura</option>
+                            <option value="rain">
+                              Probabilidade de chuva
+                            </option>
+                            <option value="wind">Vento atual</option>
+                          </select>
+
+                          {chartType !== "wind" && (
+                            <select
+                              value={chartPeriod}
+                              onChange={(e) =>
+                                setChartPeriod(
+                                  e.target.value as ChartPeriod,
+                                )
+                              }
+                              className="max-w-full rounded-lg border border-zinc-200 bg-white px-2 py-1.5 text-xs text-zinc-700"
+                              aria-label="Período da previsão"
+                            >
+                              <option value="today">Hoje</option>
+                              <option value="tomorrow">Amanhã</option>
+                              <option value="2days">2 dias</option>
+                              <option value="3days">3 dias</option>
+                            </select>
+                          )}
+                        </div>
+
+                        {(() => {
+                          const weather = msg.weather!;
+                          const chartData = getChartData(
+                            weather,
+                            chartPeriod,
+                          );
+
+                          const hasTemperatureData = chartData.some(
+                            (point) =>
+                              typeof point.minTemp === "number" ||
+                              typeof point.maxTemp === "number",
+                          );
+
+                          const hasRainData = chartData.some(
+                            (point) =>
+                              typeof point.rainProbability === "number",
+                          );
+
+                          const hasWindData =
+                            typeof weather.windSpeed === "number";
+
+                          const hasData =
+                            chartType === "temperature"
+                              ? hasTemperatureData
+                              : chartType === "rain"
+                                ? hasRainData
+                                : hasWindData;
+
+                          if (!hasData) {
+                            return (
+                              <p className="py-8 text-center text-xs text-zinc-500">
+                                Não há dados reais disponíveis para este
+                                gráfico no momento.
+                              </p>
+                            );
+                          }
+
+                          return (
+                            <div className="h-56 w-full">
+                              <ResponsiveContainer width="100%" height="100%">
+                                {chartType === "temperature" ? (
+                                  <LineChart
+                                    data={chartData}
+                                    margin={{
+                                      top: 18,
+                                      right: 12,
+                                      left: 4,
+                                      bottom: 4,
+                                    }}
+                                  >
+                                    <CartesianGrid strokeDasharray="3 3" />
+
+                                    <XAxis
+                                      dataKey="day"
+                                      tick={{ fontSize: 11 }}
+                                    />
+
+                                    <YAxis
+                                      unit=" °C"
+                                      tick={{ fontSize: 11 }}
+                                      width={55}
+                                    />
+
+                                    <Tooltip
+                                      formatter={(value, name) => [
+                                        `${value} °C`,
+                                        name,
+                                      ]}
+                                    />
+
+                                    <Legend />
+
+                                    <Line
+                                      type="monotone"
+                                      dataKey="maxTemp"
+                                      name="Máxima"
+                                      stroke="#f59e0b"
+                                      strokeWidth={2}
+                                      connectNulls={false}
+                                      dot={{ r: 4 }}
+                                      activeDot={{ r: 6 }}
+                                      label={{
+                                        position: "top",
+                                        formatter: (value: number) =>
+                                          `${value}°`,
+                                        fontSize: 10,
+                                      }}
+                                    />
+
+                                    <Line
+                                      type="monotone"
+                                      dataKey="minTemp"
+                                      name="Mínima"
+                                      stroke="#0284c7"
+                                      strokeWidth={2}
+                                      connectNulls={false}
+                                      dot={{ r: 4 }}
+                                      activeDot={{ r: 6 }}
+                                      label={{
+                                        position: "bottom",
+                                        formatter: (value: number) =>
+                                          `${value}°`,
+                                        fontSize: 10,
+                                      }}
+                                    />
+
+                                    <Line
+                                      type="monotone"
+                                      dataKey="avgTemp"
+                                      name="Média estimada"
+                                      stroke="#8b5cf6"
+                                      strokeDasharray="5 4"
+                                      connectNulls={false}
+                                      dot={false}
+                                    />
+                                  </LineChart>
+                                ) : chartType === "rain" ? (
+                                  <BarChart
+                                    data={chartData}
+                                    margin={{
+                                      top: 22,
+                                      right: 12,
+                                      left: 4,
+                                      bottom: 4,
+                                    }}
+                                  >
+                                    <CartesianGrid strokeDasharray="3 3" />
+
+                                    <XAxis
+                                      dataKey="day"
+                                      tick={{ fontSize: 11 }}
+                                    />
+
+                                    <YAxis
+                                      domain={[0, 100]}
+                                      unit="%"
+                                      tick={{ fontSize: 11 }}
+                                      width={45}
+                                    />
+
+                                    <Tooltip
+                                      formatter={(value) => [
+                                        `${value}%`,
+                                        "Probabilidade de chuva",
+                                      ]}
+                                    />
+
+                                    <Bar
+                                      dataKey="rainProbability"
+                                      name="Probabilidade de chuva"
+                                      fill="#0284c7"
+                                      radius={[5, 5, 0, 0]}
+                                      label={{
+                                        position: "top",
+                                        formatter: (value: number) =>
+                                          `${value}%`,
+                                        fontSize: 11,
+                                        fill: "#0369a1",
+                                      }}
+                                    />
+                                  </BarChart>
+                                ) : (
+                                  <BarChart
+                                    data={[
+                                      {
+                                        day: "Agora",
+                                        windSpeed: weather.windSpeed!,
+                                      },
+                                    ]}
+                                    margin={{
+                                      top: 22,
+                                      right: 12,
+                                      left: 4,
+                                      bottom: 4,
+                                    }}
+                                  >
+                                    <CartesianGrid strokeDasharray="3 3" />
+
+                                    <XAxis
+                                      dataKey="day"
+                                      tick={{ fontSize: 11 }}
+                                    />
+
+                                    <YAxis
+                                      unit=" km/h"
+                                      tick={{ fontSize: 11 }}
+                                      width={60}
+                                    />
+
+                                    <Tooltip
+                                      formatter={(value) => [
+                                        `${value} km/h`,
+                                        "Vento atual",
+                                      ]}
+                                    />
+
+                                    <Bar
+                                      dataKey="windSpeed"
+                                      name="Vento atual"
+                                      fill="#6366f1"
+                                      radius={[5, 5, 0, 0]}
+                                      label={{
+                                        position: "top",
+                                        formatter: (value: number) =>
+                                          `${value} km/h`,
+                                        fontSize: 11,
+                                        fill: "#4f46e5",
+                                      }}
+                                    />
+                                  </BarChart>
+                                )}
+                              </ResponsiveContainer>
+                            </div>
+                          );
+                        })()}
+
+                        {chartType === "temperature" && (
+                          <p className="mt-2 text-[11px] text-zinc-500">
+                            A média estimada é calculada entre as temperaturas
+                            mínima e máxima; não representa uma medição
+                            independente.
+                          </p>
+                        )}
+
+                        {chartType === "wind" && (
+                          <p className="mt-2 text-[11px] text-zinc-500">
+                            Este gráfico apresenta a velocidade atual do
+                            vento. A previsão diária de vento não está
+                            disponível nos dados utilizados aqui.
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <div
                   className={`mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 ${
-                    msg.sender === "user"
-                      ? "justify-end"
-                      : "justify-start"
+                    msg.sender === "user" ? "justify-end" : "justify-start"
                   }`}
                 >
                   <button

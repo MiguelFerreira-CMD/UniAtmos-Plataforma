@@ -64,9 +64,8 @@ export function AtmosNavbar({
               UniAtmos
             </button>
           </div>
-
           {/* INFORMAÇÕES DE UNIDADE E CIDADE (Desktop / Tablet) - Visual estático sem interação */}
-          <div className="hidden md:flex items-center gap-2.5 bg-zinc-100/70 px-3.5 py-1.5 rounded-xl text-xs select-none">
+          <div className="hidden md:flex items-center gap-2.5 bg-zinc-100/70 px-3.5 py-1.5 rounded-xl text-xs select-none ml-20">
             {/* Unidade */}
             <div className="flex items-center gap-1.5">
               <Building2 className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
@@ -96,7 +95,6 @@ export function AtmosNavbar({
                 : "text-zinc-600 hover:text-zinc-950 hover:bg-zinc-100"
                 }`}
             >
-              <Info className="w-3.5 h-3.5 text-zinc-400" />
               Sobre
             </button>
 
@@ -108,7 +106,6 @@ export function AtmosNavbar({
                 : "text-zinc-600 hover:text-zinc-950 hover:bg-zinc-100"
                 }`}
             >
-              <HelpCircle className="w-3.5 h-3.5 text-zinc-400" />
               Ajuda
             </button>
 
@@ -120,7 +117,6 @@ export function AtmosNavbar({
                 : "text-zinc-600 hover:text-zinc-950 hover:bg-zinc-100"
                 }`}
             >
-              <Award className="w-3.5 h-3.5 text-zinc-400" />
               Créditos
             </button>
           </div>
@@ -133,7 +129,7 @@ export function AtmosNavbar({
               className="p-2 text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 rounded-lg cursor-pointer"
               title="Créditos"
             >
-              <Award className="w-5 h-5" />
+              Créditos
             </button>
             <button
               type="button"
@@ -173,7 +169,6 @@ export function AtmosNavbar({
                   : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200/80"
                   }`}
               >
-                <Home className="w-3.5 h-3.5" />
                 Início
               </button>
               <button
@@ -194,9 +189,7 @@ export function AtmosNavbar({
                   ? "bg-zinc-200 text-zinc-950 font-bold"
                   : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200/80"
                   }`}
-              >
-                <HelpCircle className="w-3.5 h-3.5" />
-                Ajuda
+              >                Ajuda
               </button>
               <button
                 type="button"
@@ -206,7 +199,6 @@ export function AtmosNavbar({
                   : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200/80"
                   }`}
               >
-                <Award className="w-3.5 h-3.5" />
                 Créditos
               </button>
             </div>
