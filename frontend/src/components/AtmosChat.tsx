@@ -58,6 +58,7 @@ interface ChatMessage {
   text: string;
   sender: "user" | "bot";
   weather?: WeatherData | null;
+  chartTopic?: ChartType | null;
 }
 
 interface ApiError {
@@ -93,6 +94,109 @@ function cleanMessageText(text: string): string {
     .replace(/[ \t]{2,}/g, " ")
     .replace(/[ \t]+([,.;!?])/g, "$1")
     .trim();
+}
+
+function detectLocalChartTopic(text: string): ChartType | null {
+  const norm = cleanMessageText(text).toLowerCase();
+
+  // Se for pergunta absurda, sem gráfico
+  const tempMatch = norm.match(/(-?\d+)\s*(graus?|celsius|c\b|°)/i);
+  if (tempMatch) {
+    const val = parseInt(tempMatch[1], 10);
+    if (val > 55 || val < -50) return null;
+  }
+  if (
+    norm.includes("200 grau") ||
+    norm.includes("100 grau") ||
+    norm.includes("300 grau") ||
+    norm.includes("500 grau") ||
+    norm.includes("canivete") ||
+    norm.includes("meteoro")
+  ) {
+    return null;
+  }
+
+  // 1. Chuva e variantes
+  const rainKeywords = [
+    "chuva",
+    "chover",
+    "chovendo",
+    "chovera",
+    "choverá",
+    "chove",
+    "chovesse",
+    "vai chover",
+    "vai ter chuva",
+    "chance de chuva",
+    "probabilidade de chuva",
+    "precipitacao",
+    "precipitação",
+    "temporal",
+    "tempestade",
+    "garoa",
+    "chuvisco",
+    "aguaceiro",
+    "guarda-chuva",
+    "guarda chuva",
+    "pancada de chuva",
+  ];
+  if (rainKeywords.some((kw) => norm.includes(kw))) {
+    return "rain";
+  }
+
+  // 2. Vento e variantes
+  const windKeywords = [
+    "vento",
+    "ventania",
+    "ventando",
+    "ventos",
+    "rajada",
+    "rajadas",
+    "velocidade do vento",
+    "brisa",
+    "força do vento",
+    "forca do vento",
+  ];
+  if (windKeywords.some((kw) => norm.includes(kw))) {
+    return "wind";
+  }
+
+  // 3. Temperatura e variantes
+  const tempKeywords = [
+    "temperatura",
+    "temperaturas",
+    "grau",
+    "graus",
+    "celsius",
+    "calor",
+    "frio",
+    "sensacao termica",
+    "sensação térmica",
+    "sensacao de calor",
+    "maxima",
+    "máxima",
+    "minima",
+    "mínima",
+    "termometro",
+    "termômetro",
+    "esta quente",
+    "está quente",
+    "ta quente",
+    "tá quente",
+    "esta frio",
+    "está frio",
+    "ta frio",
+    "tá frio",
+    "vai esfriar",
+    "vai esquentar",
+    "congelando",
+    "fervendo",
+  ];
+  if (tempKeywords.some((kw) => norm.includes(kw))) {
+    return "temperature";
+  }
+
+  return null;
 }
 
 function getChartData(
@@ -166,7 +270,9 @@ export function AtmosChat({
   const [openChartMessageId, setOpenChartMessageId] = useState<string | null>(
     null,
   );
-  const [chartType, setChartType] = useState<ChartType>("temperature");
+  const [messageChartTypes, setMessageChartTypes] = useState<
+    Record<string, ChartType>
+  >({});
   const [chartPeriod, setChartPeriod] = useState<ChartPeriod>("3days");
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -266,6 +372,7 @@ export function AtmosChat({
       const data = (await response.json()) as {
         reply?: string;
         weather?: WeatherData | null;
+        chartTopic?: ChartType | null;
       } & ApiError;
 
       if (!response.ok) {
@@ -289,13 +396,19 @@ export function AtmosChat({
 
       if (!isMountedRef.current) return;
 
+      const topic =
+        data.chartTopic !== undefined
+          ? data.chartTopic
+          : detectLocalChartTopic(trimmed);
+
       setMessages((prev) => [
         ...prev,
         {
           id: `bot-${Date.now()}`,
           text: cleanReply,
           sender: "bot",
-          weather: data.weather ?? null,
+          weather: topic ? (data.weather ?? null) : null,
+          chartTopic: topic,
         },
       ]);
     } catch (error) {
@@ -353,7 +466,7 @@ export function AtmosChat({
     setSpeakingMessageId(null);
     setCopiedMessageId(null);
     setOpenChartMessageId(null);
-    setChartType("temperature");
+    setMessageChartTypes({});
     setChartPeriod("3days");
 
     setMessages([
@@ -479,15 +592,22 @@ export function AtmosChat({
                   {cleanMessageText(msg.text)}
                 </div>
 
-                {msg.sender === "bot" && msg.weather && (
+                {msg.sender === "bot" && msg.weather && msg.chartTopic && (
                   <div className="mt-2 w-full">
                     <button
                       type="button"
-                      onClick={() =>
-                        setOpenChartMessageId((current) =>
-                          current === msg.id ? null : msg.id,
-                        )
-                      }
+                      onClick={() => {
+                        setOpenChartMessageId((current) => {
+                          if (current === msg.id) return null;
+                          if (!messageChartTypes[msg.id] && msg.chartTopic) {
+                            setMessageChartTypes((prev) => ({
+                              ...prev,
+                              [msg.id]: msg.chartTopic!,
+                            }));
+                          }
+                          return msg.id;
+                        });
+                      }}
                       className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-50 cursor-pointer"
                       aria-expanded={openChartMessageId === msg.id}
                     >
@@ -497,84 +617,91 @@ export function AtmosChat({
                         : "Visualizar gráfico"}
                     </button>
 
-                    {openChartMessageId === msg.id && (
-                      <div className="mt-2 w-full min-w-0 rounded-xl border border-zinc-200 bg-white p-3">
-                        <div className="mb-3 flex flex-wrap gap-2">
-                          <select
-                            value={chartType}
-                            onChange={(e) =>
-                              setChartType(e.target.value as ChartType)
-                            }
-                            className="max-w-full rounded-lg border border-zinc-200 bg-white px-2 py-1.5 text-xs text-zinc-700"
-                            aria-label="Tipo de gráfico"
-                          >
-                            <option value="temperature">Temperatura</option>
-                            <option value="rain">
-                              Probabilidade de chuva
-                            </option>
-                            <option value="wind">Vento atual</option>
-                          </select>
+                    {openChartMessageId === msg.id && (() => {
+                      const currentChartType =
+                        messageChartTypes[msg.id] ??
+                        msg.chartTopic ??
+                        "temperature";
 
-                          {chartType !== "wind" && (
+                      const weather = msg.weather!;
+                      const chartData = getChartData(
+                        weather,
+                        chartPeriod,
+                      );
+
+                      const hasTemperatureData = chartData.some(
+                        (point) =>
+                          typeof point.minTemp === "number" ||
+                          typeof point.maxTemp === "number",
+                      );
+
+                      const hasRainData = chartData.some(
+                        (point) =>
+                          typeof point.rainProbability === "number",
+                      );
+
+                      const hasWindData =
+                        typeof weather.windSpeed === "number";
+
+                      const hasData =
+                        currentChartType === "temperature"
+                          ? hasTemperatureData
+                          : currentChartType === "rain"
+                            ? hasRainData
+                            : hasWindData;
+
+                      return (
+                        <div className="mt-2 w-full min-w-0 rounded-xl border border-zinc-200 bg-white p-3">
+                          <div className="mb-3 flex flex-wrap gap-2">
                             <select
-                              value={chartPeriod}
-                              onChange={(e) =>
-                                setChartPeriod(
-                                  e.target.value as ChartPeriod,
-                                )
-                              }
-                              className="max-w-full rounded-lg border border-zinc-200 bg-white px-2 py-1.5 text-xs text-zinc-700"
-                              aria-label="Período da previsão"
+                              value={currentChartType}
+                              onChange={(e) => {
+                                const newType = e.target.value as ChartType;
+                                setMessageChartTypes((prev) => ({
+                                  ...prev,
+                                  [msg.id]: newType,
+                                }));
+                              }}
+                              className="max-w-full rounded-lg border border-zinc-200 bg-white px-2 py-1.5 text-xs text-zinc-700 font-medium"
+                              aria-label="Tipo de gráfico"
                             >
-                              <option value="today">Hoje</option>
-                              <option value="tomorrow">Amanhã</option>
-                              <option value="2days">2 dias</option>
-                              <option value="3days">3 dias</option>
+                              <option value="rain">
+                                Probabilidade de chuva
+                              </option>
+                              <option value="temperature">
+                                Temperatura
+                              </option>
+                              <option value="wind">Vento atual</option>
                             </select>
-                          )}
-                        </div>
 
-                        {(() => {
-                          const weather = msg.weather!;
-                          const chartData = getChartData(
-                            weather,
-                            chartPeriod,
-                          );
+                            {currentChartType !== "wind" && (
+                              <select
+                                value={chartPeriod}
+                                onChange={(e) =>
+                                  setChartPeriod(
+                                    e.target.value as ChartPeriod,
+                                  )
+                                }
+                                className="max-w-full rounded-lg border border-zinc-200 bg-white px-2 py-1.5 text-xs text-zinc-700 font-medium"
+                                aria-label="Período da previsão"
+                              >
+                                <option value="today">Hoje</option>
+                                <option value="tomorrow">Amanhã</option>
+                                <option value="2days">2 dias</option>
+                                <option value="3days">3 dias</option>
+                              </select>
+                            )}
+                          </div>
 
-                          const hasTemperatureData = chartData.some(
-                            (point) =>
-                              typeof point.minTemp === "number" ||
-                              typeof point.maxTemp === "number",
-                          );
-
-                          const hasRainData = chartData.some(
-                            (point) =>
-                              typeof point.rainProbability === "number",
-                          );
-
-                          const hasWindData =
-                            typeof weather.windSpeed === "number";
-
-                          const hasData =
-                            chartType === "temperature"
-                              ? hasTemperatureData
-                              : chartType === "rain"
-                                ? hasRainData
-                                : hasWindData;
-
-                          if (!hasData) {
-                            return (
-                              <p className="py-8 text-center text-xs text-zinc-500">
-                                Não há dados reais disponíveis para este
-                                gráfico no momento.
-                              </p>
-                            );
-                          }
-
-                          return (
+                          {!hasData ? (
+                            <p className="py-8 text-center text-xs text-zinc-500">
+                              Não há dados reais disponíveis para este
+                              gráfico no momento.
+                            </p>
+                          ) : (
                             <div className="h-56 w-full">
                               <ResponsiveContainer width="100%" height="100%">
-                                {chartType === "temperature" ? (
+                                {currentChartType === "temperature" ? (
                                   <LineChart
                                     data={chartData}
                                     margin={{
@@ -650,7 +777,7 @@ export function AtmosChat({
                                       dot={false}
                                     />
                                   </LineChart>
-                                ) : chartType === "rain" ? (
+                                ) : currentChartType === "rain" ? (
                                   <BarChart
                                     data={chartData}
                                     margin={{
@@ -747,26 +874,26 @@ export function AtmosChat({
                                 )}
                               </ResponsiveContainer>
                             </div>
-                          );
-                        })()}
+                          )}
 
-                        {chartType === "temperature" && (
-                          <p className="mt-2 text-[11px] text-zinc-500">
-                            A média estimada é calculada entre as temperaturas
-                            mínima e máxima; não representa uma medição
-                            independente.
-                          </p>
-                        )}
+                          {currentChartType === "temperature" && (
+                            <p className="mt-2 text-[11px] text-zinc-500">
+                              A média estimada é calculada entre as temperaturas
+                              mínima e máxima; não representa uma medição
+                              independente.
+                            </p>
+                          )}
 
-                        {chartType === "wind" && (
-                          <p className="mt-2 text-[11px] text-zinc-500">
-                            Este gráfico apresenta a velocidade atual do
-                            vento. A previsão diária de vento não está
-                            disponível nos dados utilizados aqui.
-                          </p>
-                        )}
-                      </div>
-                    )}
+                          {currentChartType === "wind" && (
+                            <p className="mt-2 text-[11px] text-zinc-500">
+                              Este gráfico apresenta a velocidade atual do
+                              vento. A previsão diária de vento não está
+                              disponível nos dados utilizados aqui.
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
                 )}
 

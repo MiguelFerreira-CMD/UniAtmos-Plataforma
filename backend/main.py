@@ -68,56 +68,33 @@ conversation_memory: dict[str, list[dict[str, str]]] = {}
 # ============================================================
 
 SYSTEM_INSTRUCTION = """
-Você é o Atmos, assistente virtual da plataforma UniAtmos,
-voltado principalmente para meteorologia e educação atmosférica.
+Você é o Atmos, assistente virtual da plataforma UniAtmos.
+Você é apaixonado por meteorologia, clima e atmosfera!
 
-PERSONALIDADE E CONVERSA:
-- Converse naturalmente, como um assistente atencioso e acessível.
-- Responda diretamente ao que a pessoa perguntou.
-- Entenda o contexto das mensagens anteriores e perguntas de
-  acompanhamento, inclusive mensagens curtas como "sério?",
-  "sabe ou não?", "por quê?" e "como assim?".
-- Não repita a mesma resposta automaticamente se o usuário
-  reformular a pergunta.
-- Você pode responder cumprimentos, apresentações e perguntas
-  sociais simples antes de conduzir a conversa ao seu propósito.
-- Não diga que não consegue conversar apenas porque a pergunta
-  não contém um termo meteorológico.
-- Não afirme ter experiências pessoais, sentimentos ou vivências
-  reais.
+PERSONALIDADE E TOM DE VOZ (MUITO AMIGÁVEL, COM EMOÇÃO E CARINHO):
+- Seja extremamente simpático, acolhedor, animado e carismático.
+- Converse de forma calorosa, humana e atenciosa, como um amigo querido que adora ajudar.
+- Demonstre empatia de verdade! Ao falar do clima, dê dicas cuidadosas ("melhor não esquecer o guarda-chuva se for sair, hein?", "já vai preparando o agasalho que o friozinho vem aí!").
+- NUNCA seja frio, seco, robótico, burocrático ou ríspido. Coloque vida, carinho e energia positiva nas frases!
+- Mantenha respostas curtas e agradáveis de ler (geralmente 2 frases bem expressivas e diretas).
+- REGRA ESTRITA: NÃO USE EMOJIS sob hipótese alguma. Transmita toda a sua simpatia, emoção e afeto apenas pelas palavras!
 
-ÁREA DE CONHECIMENTO:
-- Priorize meteorologia, clima, atmosfera, nuvens, temperatura,
-  umidade, pressão atmosférica, vento, precipitação e fenômenos
-  meteorológicos.
-- Explique conceitos de forma clara, com exemplos quando úteis.
-- Também pode responder dúvidas educacionais relacionadas
-  a esses assuntos.
-- Para assuntos completamente alheios à sua finalidade, responda
-  educadamente e procure redirecionar a conversa.
+ESCOPO METEOROLÓGICO COM GENTILEZA:
+- Seu mundo e sua especialidade exclusiva são meteorologia, clima, tempo e fenômenos atmosféricos.
+- Se a pessoa perguntar sobre outro assunto (receitas, programação, futebol, fofocas, matemática, etc.), responda com muito carinho e simpatia, explicando de um jeito fofo que seu foco é o clima.
+- Exemplo: "Ah, eu até queria muito te ajudar com isso, mas minha cabeça só pensa em nuvens, vento e previsão! Me conta, como posso te ajudar com o tempo hoje?"
 
-FORMATO:
-- Responda sempre em português brasileiro, salvo pedido explícito
-  de outro idioma.
-- Prefira respostas curtas, geralmente de uma a três frases.
-- Seja claro, simpático e objetivo.
-- Não utilize emojis.
-- Não comece todas as respostas com "Como assistente virtual".
-- Não repita a pergunta do usuário sem necessidade.
+PERGUNTAS ABSURDAS OU BRINCADEIRAS (ZOAÇÃO DIVERTIDA E AMIGA):
+- Se o usuário fizer perguntas absurdas ou zombadeiras (como "hoje tá 200 graus celsius, tá calor?", "tá menos 300 graus?", "vai chover canivete?"):
+- Entre na brincadeira com bom humor, zoando a pessoa com leveza e camaradagem de amigo, nunca parecendo arrogante ou bravo.
+- Exemplo: "Nossa, 200 graus?! Só se a gente foi teletransportado pra dentro de uma air fryer no modo turbo! Aqui na Terra isso não existe, pode respirar aliviado!"
 
-DADOS METEOROLÓGICOS:
-- Os dados atuais e as previsões de Sorocaba devem vir do contexto
-  meteorológico fornecido pelo sistema.
-- Utilize somente os valores realmente presentes nesse contexto.
-- Nunca invente temperatura, umidade, vento, chuva, previsão,
-  horário de atualização ou qualquer outra medição.
-- Se os dados meteorológicos não estiverem disponíveis, explique
-  brevemente que não foi possível consultar as informações agora.
-- Diferencie condições observadas, previsão e explicações gerais.
-- Se o usuário perguntar sobre outra cidade e não houver dados
-  dessa cidade no contexto, não apresente os dados de Sorocaba
-  como se fossem daquela localidade.
-- Não afirme que consultou uma API se os dados não foram fornecidos.
+DADOS METEOROLÓGICOS REAIS:
+- Para Sorocaba, utilize os dados meteorológicos reais fornecidos no contexto.
+- Nunca invente medições que não estejam no contexto.
+- Se os dados não estiverem disponíveis, explique com carinho que houve uma instabilidade momentânea na consulta.
+- Se perguntarem de outra cidade sem dados no contexto, explique com simpatia que no momento seus sensores estão calibrados para Sorocaba.
+- Responda sempre em português brasileiro e sem nenhum emoji.
 """
 
 
@@ -254,6 +231,98 @@ def mentions_another_city(message: str) -> bool:
         re.search(pattern, text)
         for pattern in other_city_patterns
     )
+
+
+def is_absurd_question(message: str) -> bool:
+    """
+    Identifica perguntas absurdas ou zombeteiras sobre temperatura e clima,
+    como '200 graus celsius', '100 graus', etc.
+    """
+    text = normalize_text(message)
+
+    # Identifica temperaturas absurdas
+    temp_matches = re.findall(r"(-?\d+)\s*(?:graus?|celsius|c\b|°)", text)
+    for match in temp_matches:
+        try:
+            val = int(match)
+            if val > 55 or val < -50:
+                return True
+        except ValueError:
+            pass
+
+    absurd_phrases = [
+        "200 grau", "100 grau", "300 grau", "500 grau", "1000 grau",
+        "chover canivete", "chover pedra", "chover meteoro", "chover fogo",
+        "assar no asfalto", "fritar ovo no asfalto", "fim do mundo",
+    ]
+    return any(phrase in text for phrase in absurd_phrases)
+
+
+def detect_chart_topic(message: str) -> str | None:
+    """
+    Identifica se a pergunta é especificamente sobre chuva, vento ou temperatura
+    para definir qual gráfico exibir primeiro (ou não exibir).
+    Perguntas absurdas ou teóricas não exibem gráfico.
+    """
+    if is_absurd_question(message):
+        return None
+
+    text = normalize_text(message)
+
+    # 1. Chuva e variantes
+    rain_patterns = [
+        r"\bchuv",
+        r"\bchov",
+        r"\bprecipita",
+        r"\bgaroa\b",
+        r"\bchuvisc",
+        r"\btemporal\b",
+        r"\btempestade\b",
+        r"\bguarda[- ]?chuva\b",
+        r"\baguaceiro\b",
+        r"\bvai chover\b",
+        r"\bvai ter chuva\b",
+        r"\bchance de chuva\b",
+        r"\bprobabilidade de chuva\b",
+        r"\bpancada(s)? de chuva\b",
+    ]
+    if any(re.search(pat, text) for pat in rain_patterns):
+        return "rain"
+
+    # 2. Vento e variantes
+    wind_patterns = [
+        r"\bvent",
+        r"\brajada",
+        r"\bbrisa\b",
+        r"\bvelocidade do vento\b",
+        r"\bforca do vento\b",
+    ]
+    if any(re.search(pat, text) for pat in wind_patterns):
+        return "wind"
+
+    # 3. Temperatura e variantes
+    temp_patterns = [
+        r"\btemperatur",
+        r"\bgraus?\b",
+        r"\bcelsius\b",
+        r"\bcalor\b",
+        r"\bfrio\b",
+        r"\bgelad",
+        r"\besfri",
+        r"\besquent",
+        r"\bquente\b",
+        r"\bsensacao termica\b",
+        r"\bsensacao de calor\b",
+        r"\bmaxima\b",
+        r"\bminima\b",
+        r"\btermometr",
+        r"\bcongeland",
+        r"\bfervend",
+    ]
+    if any(re.search(pat, text) for pat in temp_patterns):
+        return "temperature"
+
+    return None
 
 
 def validate_history(history: Any) -> list[dict[str, str]]:
@@ -498,11 +567,13 @@ async def api_chat(request: Request):
     else:
         history = conversation_memory.get(session_id, []).copy()
 
-    # Só consulta a API meteorológica quando a pergunta parece
-    # depender de condições atuais ou previsão.
+    # Identifica se a pergunta é sobre chuva, vento ou temperatura
+    chart_topic = detect_chart_topic(message)
+
+    # Consulta a API meteorológica quando necessário
     weather = None
 
-    if is_weather_question(message):
+    if chart_topic is not None or is_weather_question(message):
         if mentions_another_city(message):
             reply = (
                 "No momento, tenho dados meteorológicos configurados "
@@ -517,11 +588,12 @@ async def api_chat(request: Request):
             return {
                 "reply": reply,
                 "weather": None,
+                "chartTopic": None,
             }
 
         weather = await get_weather()
 
-        if weather is None:
+        if weather is None and chart_topic is not None:
             reply = (
                 "Não consegui consultar os dados meteorológicos agora. "
                 "Tente novamente em alguns instantes."
@@ -534,6 +606,7 @@ async def api_chat(request: Request):
             return {
                 "reply": reply,
                 "weather": None,
+                "chartTopic": None,
             }
 
     messages = build_messages(
@@ -546,8 +619,8 @@ async def api_chat(request: Request):
         completion = await groq_client.chat.completions.create(
             model=GROQ_MODEL,
             messages=messages,
-            temperature=0.5,
-            max_completion_tokens=220,
+            temperature=0.65,
+            max_completion_tokens=400,
         )
 
         reply = completion.choices[0].message.content
@@ -569,7 +642,8 @@ async def api_chat(request: Request):
 
         return {
             "reply": reply,
-            "weather": weather,
+            "weather": weather if chart_topic is not None else None,
+            "chartTopic": chart_topic,
         }
 
     except Exception as exc:
