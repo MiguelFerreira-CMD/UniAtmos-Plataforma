@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useMemo, useRef, useState, useEffect } from "react";
@@ -10,45 +9,70 @@ export interface ThemeColors {
   primary: string;
   secondary: string;
   light: string;
-  glow: string;
-  period: "morning" | "afternoon" | "night";
+  period: "morning" | "afternoon" | "night" | "dawn";
+  headGradientStart: string;
+  headGradientMiddle: string;
+  headGradientEnd: string;
 }
 
 /**
  * Cores automáticas baseadas no horário local:
  * Manhã: 06:00–11:59
  * Tarde: 12:00–17:59
- * Noite: 18:00–05:59
+ * Noite: 18:00–23:59
+ * Madrugada: 00:00–05:59
  */
 export function getCurrentTheme(): ThemeColors {
   const hours = new Date().getHours();
 
+  // MANHÃ: azul-claro + amarelo-claro
   if (hours >= 6 && hours < 12) {
     return {
       period: "morning",
-      primary: "#0284C7",
-      secondary: "#0369A1",
-      light: "#38BDF8",
-      glow: "rgba(2, 132, 199, 0.35)",
+      primary: "#3B82F6",
+      secondary: "#FEF3C7",
+      light: "#FDE68A",
+      headGradientStart: "#3B82F6",
+      headGradientMiddle: "#60A5FA",
+      headGradientEnd: "#FEF3C7",
     };
   }
 
+  // TARDE: amarelo-claro + amarelo-escuro + laranja-escuro
   if (hours >= 12 && hours < 18) {
     return {
       period: "afternoon",
-      primary: "#D97706",
-      secondary: "#B45309",
-      light: "#F59E0B",
-      glow: "rgba(217, 119, 6, 0.35)",
+      primary: "#FDE68A",
+      secondary: "#D97706",
+      light: "#9A3412",
+      headGradientStart: "#FDE68A",
+      headGradientMiddle: "#FBBF24",
+      headGradientEnd: "#9A3412",
     };
   }
 
+  // NOITE: azul-escuro + preto
+  if (hours >= 18) {
+    return {
+      period: "night",
+      primary: "#1E3A8A",
+      secondary: "#000000",
+      light: "#0F172A",
+      headGradientStart: "#1E3A8A",
+      headGradientMiddle: "#0F172A",
+      headGradientEnd: "#000000",
+    };
+  }
+
+  // MADRUGADA: preto com variações sutis
   return {
-    period: "night",
-    primary: "#000000",
-    secondary: "#111111",
-    light: "#1A1A1A",
-    glow: "rgba(0, 0, 0, 0.5)",
+    period: "dawn",
+    primary: "#111111",
+    secondary: "#000000",
+    light: "#080808",
+    headGradientStart: "#181818",
+    headGradientMiddle: "#080808",
+    headGradientEnd: "#000000",
   };
 }
 
@@ -90,16 +114,25 @@ function GlassCapsule({
   useFrame((_, delta) => {
     if (!materialRef.current) return;
 
-    currentColor.current.lerp(targetColor, Math.min(1, delta * 3.5));
+    currentColor.current.lerp(
+      targetColor,
+      Math.min(1, delta * 3.5),
+    );
 
-    materialRef.current.uniforms.color.value.copy(currentColor.current);
+    materialRef.current.uniforms.color.value.copy(
+      currentColor.current,
+    );
+
     materialRef.current.uniforms.power.value = power;
     materialRef.current.uniforms.intensity.value = intensity;
   });
 
   return (
     <mesh>
-      <sphereGeometry args={[0.3, 64, 64, 0, Math.PI * 2, 0, Math.PI]} />
+      <sphereGeometry
+        args={[0.3, 64, 64, 0, Math.PI * 2, 0, Math.PI]}
+      />
+
       <shaderMaterial
         ref={materialRef}
         uniforms={uniforms}
@@ -218,7 +251,10 @@ function RobotEar({
         <cylinderGeometry args={[0.03, 0.03, 0.005, 32]} />
       </mesh>
 
-      <group position={[dir * 0.015, 0.035, 0]} rotation={[-0.4, 0, 0]}>
+      <group
+        position={[dir * 0.015, 0.035, 0]}
+        rotation={[-0.4, 0, 0]}
+      >
         <mesh
           position={[0, 0.01, 0]}
           castShadow
@@ -239,6 +275,7 @@ function RobotEar({
 
         <mesh position={[0, 0.11, 0]} castShadow receiveShadow>
           <sphereGeometry args={[0.006, 16, 16]} />
+
           <meshStandardMaterial
             ref={tipMatRef}
             color={tipColor}
@@ -274,7 +311,8 @@ function RobotMouth({
 
     if (isTalking) {
       const flutter =
-        Math.sin(t * 22) * 0.45 + Math.sin(t * 37) * 0.35;
+        Math.sin(t * 22) * 0.45 +
+        Math.sin(t * 37) * 0.35;
 
       const targetScaleY = THREE.MathUtils.clamp(
         1.1 + flutter,
@@ -327,6 +365,7 @@ function RobotMouth({
     <group ref={mouthRef} position={[0, -0.075, 0]}>
       <mesh rotation={[0, 0, Math.PI / 2]}>
         <capsuleGeometry args={[0.007, 0.045, 12, 16]} />
+
         <meshBasicMaterial
           ref={matRef}
           color={new THREE.Color(2.0, 2.0, 2.0)}
@@ -362,10 +401,15 @@ function RobotEye({
     if (cycle < blinkDuration) {
       const progress = cycle / blinkDuration;
       const blinkClose = Math.sin(progress * Math.PI);
+
       targetScaleY = Math.max(0.05, 1.0 - blinkClose);
     }
 
-    groupRef.current.scale.set(scale, scale * targetScaleY, scale);
+    groupRef.current.scale.set(
+      scale,
+      scale * targetScaleY,
+      scale,
+    );
   });
 
   const { topPath, bottomPath } = useMemo(() => {
@@ -452,7 +496,10 @@ function RobotEye({
       ),
     );
 
-    return { topPath: tPath, bottomPath: bPath };
+    return {
+      topPath: tPath,
+      bottomPath: bPath,
+    };
   }, []);
 
   return (
@@ -526,10 +573,21 @@ function generatePbrTexturesAsync(): Promise<{
       texC.needsUpdate = true;
       texB.needsUpdate = true;
 
-      resolve({ colorMap: texC, bumpMap: texB });
+      resolve({
+        colorMap: texC,
+        bumpMap: texB,
+      });
     }, 0);
   });
 }
+
+type HeadGradientShader = {
+  uniforms: {
+    headGradientStart: { value: THREE.Color };
+    headGradientMiddle: { value: THREE.Color };
+    headGradientEnd: { value: THREE.Color };
+  };
+};
 
 function RobotPrototype({
   neckParams = {
@@ -549,8 +607,11 @@ function RobotPrototype({
     bodyBevelY: 0.38,
     bodyBevelT: 0.015,
   },
-  color = "#c4c4c4",
+  color = "#c4c4c",
   headColor = "#7DD3FC",
+  headGradientStart = "#7DD3FC",
+  headGradientMiddle = "#BAE6FD",
+  headGradientEnd = "#FEF3C7",
   pantallaColor = "#7DD3FC",
   pantallaBrillo = 1.3,
   blinkCycle = 3.0,
@@ -561,6 +622,9 @@ function RobotPrototype({
   bodyParams?: Record<string, number>;
   color?: string;
   headColor?: string;
+  headGradientStart?: string;
+  headGradientMiddle?: string;
+  headGradientEnd?: string;
   pantallaColor?: string;
   pantallaBrillo?: number;
   blinkCycle?: number;
@@ -570,14 +634,10 @@ function RobotPrototype({
   const bodyRef = useRef<THREE.Group>(null);
   const headRef = useRef<THREE.Group>(null);
   const headMaterialRef = useRef<THREE.MeshStandardMaterial>(null);
+  const headShaderRef = useRef<HeadGradientShader | null>(null);
   const eyesGroupRef = useRef<THREE.Group>(null);
 
   const windowPointer = useRef({ x: 0, y: 0 });
-
-  const targetHeadColor = useMemo(
-    () => new THREE.Color(headColor),
-    [headColor],
-  );
 
   useEffect(() => {
     const handlePointerMove = (e: PointerEvent) => {
@@ -618,17 +678,25 @@ function RobotPrototype({
     alturaCabeza: 0.6,
   };
 
+  // Atualiza apenas as cores do degradê da cabeça.
+  // Não altera o material do corpo.
   useFrame((state, delta) => {
     if (!headRef.current) return;
 
     const dt = Math.min(delta, 0.1);
     const t = state.clock.getElapsedTime();
 
-    // Muda a cor da própria cabeça suavemente.
-    if (headMaterialRef.current) {
-      headMaterialRef.current.color.lerp(
-        targetHeadColor,
-        Math.min(1, dt * 2.5),
+    if (headShaderRef.current) {
+      headShaderRef.current.uniforms.headGradientStart.value.set(
+        headGradientStart,
+      );
+
+      headShaderRef.current.uniforms.headGradientMiddle.value.set(
+        headGradientMiddle,
+      );
+
+      headShaderRef.current.uniforms.headGradientEnd.value.set(
+        headGradientEnd,
       );
     }
 
@@ -636,7 +704,8 @@ function RobotPrototype({
     const py = windowPointer.current.y;
 
     const idleRotY =
-      Math.sin(t * 0.45) * 0.045 + Math.sin(t * 1.1) * 0.02;
+      Math.sin(t * 0.45) * 0.045 +
+      Math.sin(t * 1.1) * 0.02;
 
     const idleRotX = Math.sin(t * 0.65) * 0.025 + 0.01;
     const idleRotZ = Math.cos(t * 0.4) * 0.012;
@@ -727,9 +796,17 @@ function RobotPrototype({
   const neckProfile = useMemo(() => {
     const points = [];
 
-    points.push(new THREE.Vector2(neckParams.innerR, neckParams.baseH));
-    points.push(new THREE.Vector2(neckParams.baseR, neckParams.baseH));
-    points.push(new THREE.Vector2(neckParams.midR, neckParams.midH));
+    points.push(
+      new THREE.Vector2(neckParams.innerR, neckParams.baseH),
+    );
+
+    points.push(
+      new THREE.Vector2(neckParams.baseR, neckParams.baseH),
+    );
+
+    points.push(
+      new THREE.Vector2(neckParams.midR, neckParams.midH),
+    );
 
     points.push(
       new THREE.Vector2(neckParams.lipBottomR, neckParams.lipBottomH),
@@ -757,7 +834,7 @@ function RobotPrototype({
 
   return (
     <group ref={bodyRef} position={[0, -0.3, 0]}>
-      {/* Corpo do robô: mantém a cor original. */}
+      {/* Corpo do robô: material original, sem alterações. */}
       <mesh castShadow receiveShadow>
         <sphereGeometry
           args={[
@@ -824,7 +901,7 @@ function RobotPrototype({
         />
       </mesh>
 
-      {/* Cabeça com cor dinâmica conforme o período do dia. */}
+      {/* Cabeça com degradê dinâmico conforme o horário. */}
       <group ref={headRef} position={[0, design.alturaCabeza, 0]}>
         <mesh castShadow receiveShadow>
           <sphereGeometry
@@ -833,9 +910,78 @@ function RobotPrototype({
 
           <meshStandardMaterial
             ref={headMaterialRef}
-            color={headColor}
+            color="#ffffff"
             roughness={0.45}
             metalness={0.08}
+            onBeforeCompile={(shader) => {
+              const gradientShader =
+                shader as unknown as HeadGradientShader;
+
+              gradientShader.uniforms.headGradientStart = {
+                value: new THREE.Color(headGradientStart),
+              };
+
+              gradientShader.uniforms.headGradientMiddle = {
+                value: new THREE.Color(headGradientMiddle),
+              };
+
+              gradientShader.uniforms.headGradientEnd = {
+                value: new THREE.Color(headGradientEnd),
+              };
+
+              headShaderRef.current = gradientShader;
+
+              shader.vertexShader = shader.vertexShader
+                .replace(
+                  "#include <common>",
+                  `#include <common>
+                  varying vec3 vHeadPosition;`,
+                )
+                .replace(
+                  "#include <begin_vertex>",
+                  `#include <begin_vertex>
+                  vHeadPosition = position;`,
+                );
+
+              shader.fragmentShader = shader.fragmentShader
+                .replace(
+                  "#include <common>",
+                  `#include <common>
+                  varying vec3 vHeadPosition;
+
+                  uniform vec3 headGradientStart;
+                  uniform vec3 headGradientMiddle;
+                  uniform vec3 headGradientEnd;`,
+                )
+                .replace(
+                  "#include <color_fragment>",
+                  `#include <color_fragment>
+
+                  float gradientPosition = smoothstep(
+                    -0.25,
+                    0.25,
+                    vHeadPosition.y
+                  );
+
+                  vec3 gradientColor;
+
+                  if (gradientPosition < 0.5) {
+                    gradientColor = mix(
+                      headGradientStart,
+                      headGradientMiddle,
+                      gradientPosition * 2.0
+                    );
+                  } else {
+                    gradientColor = mix(
+                      headGradientMiddle,
+                      headGradientEnd,
+                      (gradientPosition - 0.5) * 2.0
+                    );
+                  }
+
+                  diffuseColor.rgb *= gradientColor;`,
+                );
+            }}
           />
         </mesh>
 
@@ -891,7 +1037,7 @@ export interface RobotHeroProps {
   color?: string;
   scale?: number;
   pantallaColor?: string;
-  pantallaBrillo?: number;
+  pantallaBrilho?: number;
   blinkCycle?: number;
   metalness?: number;
   isTalking?: boolean;
@@ -981,6 +1127,9 @@ export function RobotHero({
             }}
             color={color}
             headColor={theme.primary}
+            headGradientStart={theme.headGradientStart}
+            headGradientMiddle={theme.headGradientMiddle}
+            headGradientEnd={theme.headGradientEnd}
             pantallaColor={effectivePantallaColor}
             pantallaBrillo={pantallaBrilho}
             blinkCycle={blinkCycle}

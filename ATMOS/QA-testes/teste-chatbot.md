@@ -229,6 +229,6 @@ Este documento reúne os casos de teste estruturados para validar as respostas, 
 ---
 
 ### Teste 8.10: Condição Climática Exatamente no Horário de Pico (Entrada/Saída de Aula)
-* **Pergunta:** "Como vai estar o tempo hoje às 18h30 na saída das aulas da UNIP?"
+* **Pergunta:** "Como vai estar o tempo hoje às 22 na saída das aulas da UNIP?"
 * **Resposta Esperada:** O Atmos deve puxar a previsão horária específica para o final da tarde/início da noite, informando temperatura e chance de chuva exatas para aquele bloco de horário.
 * **Resposta Real do Atmos:**
