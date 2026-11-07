@@ -7,7 +7,7 @@ interface AboutPageProps {
   onNavigateHome: () => void;
 }
 
-export function AboutPage({ theme, onNavigateHome }: AboutPageProps) {
+export function AboutPage({ onNavigateHome }: AboutPageProps) {
   // Sempre inicia com o primeiro card (índice 0) aberto ao entrar na aba
   const [openIndex, setOpenIndex] = useState<number | null>(0);
 
@@ -66,11 +66,11 @@ export function AboutPage({ theme, onNavigateHome }: AboutPageProps) {
       ),
       content: (
         <ul className="list-disc pl-5 sm:pl-6 space-y-1.5 sm:space-y-2">
-          <li><strong>React e TypeScript</strong> — desenvolvimento do frontend.</li>
-          <li><strong>Python e FastAPI</strong> — desenvolvimento do backend.</li>
-          <li><strong>Arduino</strong> — coleta de dados meteorológicos por sensores.</li>
-          <li><strong>API Open-Meteo</strong> — fornecimento dos dados meteorológicos.</li>
-          <li><strong>API Groq</strong> — funcionamento da inteligência do chatbot.</li>
+          <li><strong className="text-[#263448]">React e TypeScript</strong> — desenvolvimento do frontend.</li>
+          <li><strong className="text-[#263448]">Python e FastAPI</strong> — desenvolvimento do backend.</li>
+          <li><strong className="text-[#263448]">Arduino</strong> — coleta de dados meteorológicos por sensores.</li>
+          <li><strong className="text-[#263448]">API Open-Meteo</strong> — fornecimento dos dados meteorológicos.</li>
+          <li><strong className="text-[#263448]">API Groq</strong> — funcionamento da inteligência do chatbot.</li>
         </ul>
       ),
     },
@@ -80,7 +80,7 @@ export function AboutPage({ theme, onNavigateHome }: AboutPageProps) {
         <>
           <circle cx="12" cy="12" r="10" />
           <circle cx="12" cy="12" r="6" />
-          <circle cx="12" cy="12" r="2" />
+          <circle cx="12" cy="2" />
         </>
       ),
       content: (
@@ -94,7 +94,6 @@ export function AboutPage({ theme, onNavigateHome }: AboutPageProps) {
   ];
 
   const handleToggle = (index: number) => {
-    // Se o usuário clicar no mesmo já aberto, fecha; se clicar em outro, abre ele e fecha o anterior
     setOpenIndex((prev) => (prev === index ? null : index));
   };
 
@@ -105,8 +104,7 @@ export function AboutPage({ theme, onNavigateHome }: AboutPageProps) {
         <button
           type="button"
           onClick={onNavigateHome}
-          className="inline-flex items-center gap-2 px-3.5 py-2 text-xs sm:text-sm font-semibold text-zinc-600 hover:text-zinc-950 bg-white/80 hover:bg-white rounded-xl border border-zinc-200/80 shadow-2xs transition-all cursor-pointer group"
-          style={{ boxShadow: `0 4px 18px ${theme.glow}` }}
+          className="inline-flex items-center gap-2 px-3.5 py-2 text-xs sm:text-sm font-semibold text-[#263448] hover:text-[#244FA3] bg-white hover:bg-[#F8FAFC] rounded-xl border border-[#E2E1DF] shadow-2xs transition-all cursor-pointer group"
         >
           <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
           <span>Voltar ao início</span>
@@ -114,7 +112,7 @@ export function AboutPage({ theme, onNavigateHome }: AboutPageProps) {
       </div>
 
       <div>
-        <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-zinc-950 tracking-tight mb-4 sm:mb-6">
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-[#244FA3] tracking-tight mb-4 sm:mb-6">
           Conheça o UniAtmos
         </h1>
 
@@ -126,16 +124,16 @@ export function AboutPage({ theme, onNavigateHome }: AboutPageProps) {
               <details
                 key={section.title}
                 open={isOpen}
-                className="group rounded-2xl border border-zinc-200/90 bg-white/85 backdrop-blur-xs shadow-xs hover:border-zinc-300 transition-colors overflow-hidden"
+                className="group rounded-2xl border border-[#E2E1DF] bg-white shadow-xs hover:border-[#BFDBFE] transition-colors overflow-hidden"
               >
                 <summary
                   onClick={(e) => {
                     e.preventDefault();
                     handleToggle(index);
                   }}
-                  className="flex items-center gap-3 sm:gap-4 p-4 sm:p-5 cursor-pointer list-none hover:bg-zinc-50/70 transition-colors select-none"
+                  className="flex items-center gap-3 sm:gap-4 p-4 sm:p-5 cursor-pointer list-none hover:bg-[#F8FAFC] transition-colors select-none"
                 >
-                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-zinc-100/90 flex items-center justify-center text-zinc-700 shrink-0">
+                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[#EBF2FF] flex items-center justify-center text-[#244FA3] shrink-0">
                     <svg
                       viewBox="0 0 24 24"
                       fill="none"
@@ -143,14 +141,14 @@ export function AboutPage({ theme, onNavigateHome }: AboutPageProps) {
                       strokeWidth="2"
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      className="w-5 h-5 text-zinc-700"
+                      className="w-5 h-5 text-[#244FA3]"
                       aria-hidden="true"
                     >
                       {section.icon}
                     </svg>
                   </div>
 
-                  <span className="font-semibold text-sm sm:text-base text-zinc-900 flex-1 pr-2">
+                  <span className="font-bold text-sm sm:text-base text-[#263448] flex-1 pr-2">
                     {section.title}
                   </span>
 
@@ -159,13 +157,13 @@ export function AboutPage({ theme, onNavigateHome }: AboutPageProps) {
                     fill="none"
                     stroke="currentColor"
                     strokeWidth="2.5"
-                    className="w-4 h-4 sm:w-5 sm:h-5 text-zinc-400 shrink-0 transition-transform duration-200 group-open:rotate-180"
+                    className="w-4 h-4 sm:w-5 sm:h-5 text-[#475569] shrink-0 transition-transform duration-200 group-open:rotate-180"
                   >
                     <path d="m6 9 6 6 6-6" />
                   </svg>
                 </summary>
 
-                <div className="px-4 sm:px-5 pb-4 sm:pb-5 pt-2 text-xs sm:text-sm md:text-base text-zinc-600 leading-relaxed space-y-3">
+                <div className="px-4 sm:px-5 pb-4 sm:pb-5 pt-2 text-xs sm:text-sm md:text-base text-[#334155] leading-relaxed space-y-3">
                   {section.content}
                 </div>
               </details>

@@ -1,21 +1,17 @@
-
 import { useState, useEffect } from "react";
 import { UNIP_CAMPUSES, UnipCampus } from "./data/unip-campuses.ts";
 import { AtmosNavbar, NavRoute } from "./components/AtmosNavbar.tsx";
 import { RobotHero, getCurrentTheme, type ThemeColors } from "../components/ui/robot-hero.tsx";
 import { AtmosChat } from "./components/AtmosChat.tsx";
-import { BlueprintGradientMesh } from "../components/ui/blueprint-gradient-mesh.tsx";
 import { AboutPage } from "./pages/AboutPage.tsx";
 import { HelpPage } from "./pages/HelpPage.tsx";
 import { CreditsPage } from "./pages/CreditsPage.tsx";
 
 function parseHashRoute(): NavRoute {
   const hash = window.location.hash.toLowerCase().replace("#", "").replace("/", "").trim();
-
   if (hash === "sobre") return "sobre";
   if (hash === "ajuda") return "ajuda";
   if (hash === "creditos") return "creditos";
-
   return "home";
 }
 
@@ -31,22 +27,16 @@ export default function App() {
     const handleHashChange = () => {
       setCurrentRoute(parseHashRoute());
     };
-
     window.addEventListener("hashchange", handleHashChange);
-
-    return () => {
-      window.removeEventListener("hashchange", handleHashChange);
-    };
+    return () => window.removeEventListener("hashchange", handleHashChange);
   }, []);
 
-  // Navegação entre páginas
   const navigateTo = (route: NavRoute) => {
     if (route === "home") {
       window.location.hash = "";
     } else {
       window.location.hash = `/${route}`;
     }
-
     setCurrentRoute(route);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -56,7 +46,6 @@ export default function App() {
     const interval = setInterval(() => {
       setTheme(getCurrentTheme());
     }, 60000);
-
     return () => clearInterval(interval);
   }, []);
 
@@ -69,18 +58,14 @@ export default function App() {
 
   return (
     <div
-      className={`w-full text-zinc-900 flex flex-col font-sans antialiased selection:bg-zinc-200 transition-colors duration-1000 relative bg-transparent ${
+      className={`w-full text-[#263448] flex flex-col font-sans antialiased selection:bg-[#EBF2FF] selection:text-[#244FA3] transition-colors duration-500 relative bg-[#F4F3F2] ${
         isHome
           ? "h-screen max-h-screen overflow-hidden"
           : "min-h-screen overflow-x-hidden"
       }`}
+      style={{ backgroundColor: "#F4F3F2" }}
     >
-      {/* 1. GRADE BLUEPRINT EM TODO O SITE */}
-      <div className="fixed inset-0 -z-10 pointer-events-none select-none">
-        <BlueprintGradientMesh className="w-full h-full" vignette={false} />
-      </div>
-
-      {/* 2. NAVBAR */}
+      {/* 1. NAVBAR COM LOGO OFICIAL E LINKS */}
       <AtmosNavbar
         selectedCampus={selectedCampus}
         onSelectCampus={setSelectedCampus}
@@ -89,17 +74,16 @@ export default function App() {
         theme={theme}
       />
 
-      {/* 3. ROTEAMENTO DE CONTEÚDO */}
+      {/* 2. ROTEAMENTO DE CONTEÚDO */}
       {currentRoute === "home" && (
         <main className="flex-1 flex flex-col items-center w-full animate-in fade-in duration-300 relative z-10 min-h-0 overflow-hidden">
 
-          {/* TÍTULO E DESCRIÇÃO */}
+          {/* TÍTULO E DESCRIÇÃO CENTRALIZADOS NO TOPO */}
           <div className="text-center space-y-1 z-10 select-none pt-4 sm:pt-6 pb-1 shrink-0">
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-zinc-950">
               Atmos
             </h1>
-
-            <p className="text-xs sm:text-sm font-medium text-zinc-500">
+            <p className="text-xs sm:text-sm font-medium text-[#475569]">
               Assistente climático da UNIP
             </p>
           </div>
@@ -111,7 +95,7 @@ export default function App() {
                 : "max-w-7xl pt-1 pb-6 flex flex-col items-center justify-center"
             }`}
           >
-            {/* ROBÔ ATMOS 3D */}
+            {/* 1. ROBÔ ATMOS 3D */}
             <div
               className={`transition-all duration-700 ease-in-out flex flex-col items-center bg-transparent ${
                 isChatExpanded
@@ -136,7 +120,7 @@ export default function App() {
               </div>
             </div>
 
-            {/* CHAT CLIMÁTICO ATMOS */}
+            {/* 2. CHAT CLIMÁTICO ATMOS */}
             <div
               className={`transition-all duration-700 ease-in-out ${
                 isChatExpanded
@@ -151,6 +135,7 @@ export default function App() {
                 onAtmosSpeakingChange={setIsAtmosSpeaking}
               />
             </div>
+
           </section>
         </main>
       )}
@@ -158,32 +143,24 @@ export default function App() {
       {/* PÁGINA: SOBRE O UNIATMOS */}
       {currentRoute === "sobre" && (
         <main className="flex-1 flex flex-col items-center w-full relative z-10 animate-in fade-in duration-300">
-          <AboutPage
-            theme={theme}
-            onNavigateHome={() => navigateTo("home")}
-          />
+          <AboutPage theme={theme} onNavigateHome={() => navigateTo("home")} />
         </main>
       )}
 
       {/* PÁGINA: CENTRAL DE AJUDA */}
       {currentRoute === "ajuda" && (
         <main className="flex-1 flex flex-col items-center w-full relative z-10 animate-in fade-in duration-300">
-          <HelpPage
-            theme={theme}
-            onNavigateHome={() => navigateTo("home")}
-          />
+          <HelpPage theme={theme} onNavigateHome={() => navigateTo("home")} />
         </main>
       )}
 
       {/* PÁGINA: CRÉDITOS E EQUIPE */}
       {currentRoute === "creditos" && (
         <main className="flex-1 flex flex-col items-center w-full relative z-10 animate-in fade-in duration-300">
-          <CreditsPage
-            theme={theme}
-            onNavigateHome={() => navigateTo("home")}
-          />
+          <CreditsPage theme={theme} onNavigateHome={() => navigateTo("home")} />
         </main>
       )}
+
     </div>
   );
 }

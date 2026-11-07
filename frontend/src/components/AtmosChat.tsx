@@ -811,20 +811,20 @@ export function AtmosChat({
   return (
     <div className="w-full">
       <div
-        className={`w-full bg-white/95 backdrop-blur-xl rounded-2xl sm:rounded-3xl border border-white/95 p-4 sm:p-6 flex flex-col justify-between transition-all duration-500 ease-out shadow-[0_16px_40px_rgba(0,0,0,0.06)] ${
+        className={`w-full bg-white rounded-2xl sm:rounded-3xl border border-[#E2E1DF] p-4 sm:p-6 flex flex-col justify-between transition-all duration-500 ease-out shadow-[0_8px_30px_rgba(0,0,0,0.04)] ${
           isChatExpanded
             ? "min-h-[460px] sm:min-h-[520px] lg:min-h-[560px] max-h-[78vh]"
             : "min-h-[175px] sm:min-h-[190px]"
         }`}
         style={{
-          boxShadow: `0 16px 40px rgba(0, 0, 0, 0.06), 0 0 35px ${theme.glow}`,
+          boxShadow: "0 8px 30px rgba(0, 0, 0, 0.04)",
         }}
       >
         {isChatExpanded && (
           <div className="flex items-center justify-between pb-3 mb-2 border-b border-zinc-100 text-xs">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="font-semibold text-zinc-800">ATMOS</span>
+              <span className="font-bold text-[#263448]">ATMOS</span>
             </div>
 
             <button
@@ -878,8 +878,8 @@ export function AtmosChat({
                 <div
                   className={`rounded-2xl px-4 py-2.5 text-xs sm:text-sm font-medium leading-relaxed shadow-sm whitespace-pre-wrap break-words ${
                     msg.sender === "user"
-                      ? "bg-sky-100 text-sky-950 border border-sky-200 rounded-tr-xs"
-                      : "bg-white text-zinc-800 border border-zinc-200 rounded-tl-xs"
+                      ? "bg-[#244FA3] text-white rounded-tr-xs shadow-2xs"
+                      : "bg-[#F8FAFC] text-[#1E293B] border border-[#E2E1DF] rounded-tl-xs shadow-2xs"
                   }`}
                 >
                   {cleanMessageText(msg.text)}
@@ -1315,7 +1315,7 @@ export function AtmosChat({
         )}
 
         <form onSubmit={handleSubmit} className="w-full pt-1.5">
-          <div className="flex items-center gap-2 rounded-xl p-1.5 sm:p-2 bg-zinc-50 border border-zinc-200/90 focus-within:bg-white focus-within:border-zinc-400 transition-all">
+          <div className="flex items-center gap-2 rounded-xl p-1.5 sm:p-2 bg-[#F8FAFC] border border-[#E2E1DF] focus-within:bg-white focus-within:border-[#244FA3] transition-all">
             <input
               ref={inputRef}
               type="text"
@@ -1383,7 +1383,7 @@ export function AtmosChat({
             <button
               type="submit"
               disabled={!inputText.trim() || isLoading}
-              className="px-3.5 sm:px-4 py-2 bg-zinc-950 text-white rounded-lg text-xs font-semibold hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center gap-1.5 cursor-pointer shrink-0 shadow-sm"
+              className="px-3.5 sm:px-4 py-2 bg-[#244FA3] text-white rounded-lg text-xs font-semibold hover:bg-[#1D4086] disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center gap-1.5 cursor-pointer shrink-0 shadow-xs"
             >
               <span>{isLoading ? "Enviando..." : "Enviar"}</span>
               <Send className="w-3.5 h-3.5" />

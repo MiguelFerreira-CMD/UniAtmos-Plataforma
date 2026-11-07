@@ -1,5 +1,11 @@
 @import "tailwindcss";
 
+html,
+body,
+#root {
+  background-color: #F4F3F2;
+}
+
 @keyframes floatSlow {
   0%, 100% {
     transform: translateY(0px);
