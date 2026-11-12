@@ -1,49 +1,27 @@
-# Plano de Testes da Interface Web - UniAtmos
+Avaliação da Interface Web e Design — UniAtmos (UNIP Sorocaba)
 
-Documento voltado para a validação da interface visual, responsividade, navegação e integração do componente de chat do assistente **Atmos**.
+Este documento apresenta a análise de interface visual, qualidade gráfica, navegabilidade e responsividade do sistema web UniAtmos.
 
----
+1. Design Visual e Texturas
 
-## 1. Navegação e Estrutura (Navbar & Footer)
+Estética e Textura: A interface apresenta um acabamento gráfico moderno e muito bem construído. A textura de fundo em grade (grid pattern) aliada à renderização do modelo 3D do assistente Atmos oferece uma identidade visual limpa, fluida e agradável.
 
-### Teste 1.1: Links do Menu Superior (Navbar)
-* **Ação:** Clicar nos links da barra de navegação (**Ajuda**, **Sobre**, **Créditos**).
-* **Resultado Esperado:** O site deve rolar suavemente ou navegar para as respectivas seções sem erros de link quebrado (404).
-* **Status:** [ ] Pendente | [ ] Aprovado | [ ] Reprovado
+Tipografia e Hierarquia: A escolha de fontes e o contraste visual dos elementos garantem boa leitura e facilidade de navegação.
 
-### Teste 1.2: Rodapé (Footer)
-* **Ação:** Verificar o carregamento das informações e links do rodapé da página.
-* **Resultado Esperado:** O rodapé deve estar alinhado no fim da página sem cobrir a caixa do chat.
-* **Status:** [ ] Pendente | [ ] Aprovado | [ ] Reprovado
+2. Navegação e Funcionamento das Páginas
 
----
+Página Inicial (/): O layout principal destaca o mascote 3D e a gaveta lateral interativa de mensagens de forma suave e intuitiva.
 
-## 2. Seleção de Unidades da UNIP (Foco no Brasil)
+Página Sobre (/Sobre): O sistema de acordeão (accordion) para expansão dos tópicos sobre o projeto responde de maneira fluida aos cliques.
 
-### Teste 2.1: Filtro/Seleção por Unidade Federativa / Campus
-* **Ação:** Selecionar somente a unip de sorocaba.
-* **Resultado Esperado:** O site deve atualizar as informações meteorológicas da região correspondente ao campus selecionado.
-* **Status:** [ ] Pendente | [ ] Aprovado | [ ] Reprovado
+Central de Ajuda (/Ajuda): Os cards interativos (Chatbot, Projeto, Política, Reportar, Acessibilidade, Autêntico) estão bem organizados e organizam as informações com clareza.
 
----
+Página de Créditos (/Creditos): Exibe a lista dos desenvolvedores e as fontes de dados meteorológicos com navegação limpa.
 
-## 3. Interface do Chatbot Atmos
+Roteamento: O botão de retorno (← Voltar ao início) e os links do menu superior transmitem o usuário entre todas as seções instantaneamente e sem falhas.
 
-### Teste 3.1: Exibição Central do Chat
-* **Ação:** Acessar a área do chatbot no centro da tela.
-* **Resultado Esperado:** O chat deve estar bem posicionado, responsivo e com a mensagem de apresentação do Atmos visível.
-* **Status:** [ ] Pendente | [ ] Aprovado | [ ] Reprovado
+3. Responsividade e Acessibilidade
 
-### Teste 3.2: Envio e Recebimento de Mensagens
-* **Ação:** Digitar uma mensagem e pressionar a tecla "Enter" ou clicar no botão de enviar.
-* **Resultado Esperado:** A mensagem do usuário deve ser exibida no balão de conversa e a resposta do Atmos deve ser renderizada corretamente.
-* **Status:** [ ] Pendente | [ ] Aprovado | [ ] Reprovado
+Dispositivos Móveis e Tablets: A interface funciona muito bem em diferentes tamanhos de tela. O layout, o menu superior e a janela do assistente se ajustam com precisão em computadores, notebooks, tablets e smartphones.
 
----
-
-## 4. Responsividade
-
-### Teste 4.1: Visualização em Dispositivos Móveis
-* **Ação:** Redimensionar o navegador ou abrir o site em telas pequenas (smartphones e tablets).
-* **Resultado Esperado:** O layout, o menu e a caixa de chat devem se ajustar sem quebrar elementos ou ocultar botões importantes.
-* **Status:** [ ] Pendente | [ ] Aprovado | [ ] Reprovado
+Acessibilidade: Elementos visuais bem espaçados, botões de fácil acionamento e boa visualização dos componentes garantem uma excelente experiência de uso.
