@@ -70,7 +70,7 @@ interface ApiError {
 }
 
 type ChartType = "temperature" | "rain" | "wind";
-type ChartPeriod = "today" | "tomorrow" | "2days" | "3days";
+type ChartPeriod = "today" | "tomorrow" | "2days" | "3days" | "7days";
 
 interface ChartDataPoint {
   day: string;
@@ -113,6 +113,176 @@ function detectLocalChartTopic(text: string): ChartType | null {
   const norm = normalizeText(text);
 
   if (!norm) return null;
+
+  // 1. Saudações e cumprimentos casuais NÃO exibem gráficos
+  const greetingPatterns = [
+    /^(?:oi|ola|opa|e ai|ei)\b/,
+    /^(?:bom dia|boa tarde|boa noite)\b/,
+    /^(?:tudo bem|como vai|como voce esta|como esta voce)\b/,
+  ];
+  const weatherIndicators = [
+    "vai chover",
+    "temperatura",
+    "previsao",
+    "clima",
+    "tempo",
+    "chovendo",
+    "calor",
+    "frio",
+    "vento",
+    "graus",
+    "sensacao",
+  ];
+  const hasWeatherIndicator = weatherIndicators.some((ind) => norm.includes(ind));
+  if (!hasWeatherIndicator && greetingPatterns.some((pattern) => pattern.test(norm))) {
+    return null;
+  }
+
+  // 2. Perguntas conceituais, teóricas ou explicativas NÃO exibem gráficos
+  const conceptualPatterns = [
+    /\bo que e\b/,
+    /\bo que sao\b/,
+    /\bo que significa\b/,
+    /\bo que quer dizer\b/,
+    /\bpor que\b/,
+    /\bporque\b/,
+    /\bqual o motivo\b/,
+    /\bqual a razao\b/,
+    /\bcomo ocorre(m)?\b/,
+    /\bcomo funciona(m)?\b/,
+    /\bcomo se forma(m)?\b/,
+    /\bformacao de nuvens\b/,
+    /\bqual a diferenca\b/,
+    /\bpressao atmosferica\b/,
+    /\bumidade do ar\b/,
+    /\bdefina\b/,
+    /\bexplique\b/,
+    /\bpor que a temperatura diminui\b/,
+  ];
+  if (conceptualPatterns.some((pattern) => pattern.test(norm))) {
+    return null;
+  }
+
+  // 3. Mensagens vagas, incompletas ou sem contexto (ex: 'me fala', 'me explica', 'hoje', 'amanha', 'vai?', 'temperatura')
+  const vagueExactPhrases = [
+    "me fala",
+    "me explica",
+    "como assim",
+    "quero saber",
+    "queria saber",
+    "pode falar",
+    "sobre o clima",
+    "sobre o tempo",
+    "do clima",
+    "do tempo",
+    "sobre a temperatura",
+    "da temperatura",
+    "sobre a chuva",
+    "da chuva",
+    "fala ai",
+    "fala mais",
+    "fala pra mim",
+    "me conta",
+    "me conte",
+    "diz ai",
+    "me diz",
+    "e agora",
+    "e ai",
+    "e o clima",
+    "e o tempo",
+    "o clima",
+    "o tempo",
+    "a temperatura",
+    "a chuva",
+    "o vento",
+    "me ajuda",
+    "ajuda ai",
+    "pode me ajudar",
+    "preciso de ajuda",
+    "saber mais",
+    "mais informacoes",
+    "informacoes",
+    "curiosidade",
+    "teste",
+    "ok",
+    "ta",
+    "ta bom",
+    "vai",
+    "sera",
+    "sera que vai",
+    "hoje tempo",
+    "tempo hoje",
+    "clima hoje",
+    "hoje clima",
+    "chuva hoje",
+    "hoje chuva",
+    "vento hoje",
+    "hoje vento",
+    "temperatura hoje",
+    "hoje temperatura",
+    "tempo agora",
+    "agora tempo",
+    "clima agora",
+    "agora clima",
+  ];
+  if (vagueExactPhrases.includes(norm)) {
+    return null;
+  }
+
+  const words = norm.split(/\s+/).filter(Boolean);
+  if (words.length <= 1) {
+    return null;
+  }
+  if (words.length <= 3) {
+    for (const vp of [
+      "me fala",
+      "me explica",
+      "pode falar",
+      "quero saber",
+      "como assim",
+      "sobre o clima",
+      "sobre o tempo",
+    ]) {
+      if (norm.startsWith(vp) && words.length <= vp.split(" ").length + 1) {
+        return null;
+      }
+    }
+  }
+
+  // 4. Limitações históricas e anos anteriores NÃO exibem gráficos
+  const unsupportedHistoricalPatterns = [
+    /\bano passado\b/,
+    /\bano anterior\b/,
+    /\bha (?:um|1) ano\b/,
+    /\bmesmo periodo no ano passado\b/,
+    /\bquanto choveu exatamente\b/,
+    /\bquanto choveu no ano passado\b/,
+    /\bacumulado de chuva (?:do|no) ano passado\b/,
+    /\bvolume de chuva (?:do|no) ano passado\b/,
+    /\bchoveu quanto no ano passado\b/,
+    /\bano retrasado\b/,
+  ];
+  if (unsupportedHistoricalPatterns.some((pattern) => pattern.test(norm))) {
+    return null;
+  }
+
+  // 5. Perguntas específicas sobre vestimenta, roupas ou guarda-chuva
+  const clothingPatterns = [
+    /\bque roupa\b/,
+    /\bqual roupa\b/,
+    /\bo que vestir\b/,
+    /\bcomo me vestir\b/,
+    /\bdevo levar (?:casaco|blusa|jaqueta|guarda[- ]?chuva|agasalho)\b/,
+    /\bpreciso de (?:casaco|blusa|jaqueta|guarda[- ]?chuva|agasalho)\b/,
+    /\bpreciso levar (?:casaco|blusa|jaqueta|guarda[- ]?chuva|agasalho)\b/,
+    /\blevo (?:casaco|blusa|jaqueta|guarda[- ]?chuva|agasalho)\b/,
+    /\bsair de (?:casaco|blusa|bermuda|camiseta)\b/,
+    /\bdica de roupa\b/,
+    /\bdicas de roupa\b/,
+  ];
+  if (clothingPatterns.some((pattern) => pattern.test(norm))) {
+    return null;
+  }
 
   // Não exibe gráficos para perguntas com temperaturas absurdas.
   const temperatureMatches = [
@@ -268,6 +438,36 @@ function detectLocalChartTopic(text: string): ChartType | null {
   return null;
 }
 
+const PT_WEEKDAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+
+function formatForecastDayLabel(
+  dateStr?: string,
+  isToday?: boolean,
+): string {
+  if (isToday) {
+    return "Hoje";
+  }
+
+  if (dateStr) {
+    const parts = dateStr.split("-");
+    if (parts.length === 3) {
+      const year = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10);
+      const day = parseInt(parts[2], 10);
+
+      // Instanciar data ao meio-dia para garantir estabilidade e fuso horário America/Sao_Paulo
+      const dateObj = new Date(year, month - 1, day, 12, 0, 0);
+      const weekday = PT_WEEKDAYS[dateObj.getDay()];
+      const dayFormatted = String(day).padStart(2, "0");
+      const monthFormatted = String(month).padStart(2, "0");
+
+      return `${weekday} (${dayFormatted}/${monthFormatted})`;
+    }
+  }
+
+  return "Hoje";
+}
+
 function getChartData(
   weather: WeatherData,
   period: ChartPeriod,
@@ -276,17 +476,28 @@ function getChartData(
     ? weather.forecast
     : [];
 
+  const todayForecast = forecasts[0];
+
   const selectedForecasts =
     period === "tomorrow"
       ? forecasts.slice(1, 2)
       : forecasts.slice(
           0,
-          period === "today" ? 1 : period === "2days" ? 2 : 3,
+          period === "today"
+            ? 1
+            : period === "2days"
+              ? 2
+              : period === "3days"
+                ? 3
+                : 7,
         );
 
-  return selectedForecasts.map((forecast, index) => {
+  return selectedForecasts.map((forecast) => {
+    const isToday = forecast === todayForecast;
+    const label = formatForecastDayLabel(forecast.date, isToday);
+
     const point: ChartDataPoint = {
-      day: forecast.day ?? `Dia ${index + 1}`,
+      day: label,
     };
 
     if (typeof forecast.minTemp === "number") {
@@ -308,6 +519,12 @@ function getChartData(
 
     if (typeof forecast.rainProbability === "number") {
       point.rainProbability = forecast.rainProbability;
+    }
+
+    if (typeof forecast.windSpeedMax === "number") {
+      point.windSpeed = forecast.windSpeedMax;
+    } else if (isToday && typeof weather.windSpeed === "number") {
+      point.windSpeed = weather.windSpeed;
     }
 
     return point;
@@ -476,9 +693,12 @@ export function AtmosChat({
 
       if (!isMountedRef.current) return;
 
-      // O assunto do gráfico é definido exclusivamente pela pergunta original.
-      // O backend não pode forçar gráficos em respostas sem relação com o tema.
-      const topic = detectLocalChartTopic(trimmed);
+      // O backend avalia a intenção da pergunta com critério rigoroso (evitando gráficos em dúvidas conceituais, vagas ou vestimenta).
+      // Respeitamos a determinação do backend quando fornecida; caso ausente, aplicamos o detector local atualizado.
+      const topic: ChartType | null =
+        data.chartTopic !== undefined
+          ? (data.chartTopic as ChartType | null)
+          : detectLocalChartTopic(trimmed);
 
       setMessages((prev) => [
         ...prev,
@@ -937,7 +1157,9 @@ export function AtmosChat({
                         );
 
                         const hasWindData =
-                          typeof weather.windSpeed === "number";
+                          chartData.some(
+                            (point) => typeof point.windSpeed === "number",
+                          ) || typeof weather.windSpeed === "number";
 
                         const hasData =
                           currentChartType === "temperature"
@@ -967,26 +1189,25 @@ export function AtmosChat({
                                 <option value="temperature">
                                   Temperatura
                                 </option>
-                                <option value="wind">Vento atual</option>
+                                <option value="wind">Vento</option>
                               </select>
 
-                              {currentChartType !== "wind" && (
-                                <select
-                                  value={chartPeriod}
-                                  onChange={(e) =>
-                                    setChartPeriod(
-                                      e.target.value as ChartPeriod,
-                                    )
-                                  }
-                                  className="max-w-full rounded-lg border border-zinc-200 bg-white px-2 py-1.5 text-xs text-zinc-700 font-medium"
-                                  aria-label="Período da previsão"
-                                >
-                                  <option value="today">Hoje</option>
-                                  <option value="tomorrow">Amanhã</option>
-                                  <option value="2days">2 dias</option>
-                                  <option value="3days">3 dias</option>
-                                </select>
-                              )}
+                              <select
+                                value={chartPeriod}
+                                onChange={(e) =>
+                                  setChartPeriod(
+                                    e.target.value as ChartPeriod,
+                                  )
+                                }
+                                className="max-w-full rounded-lg border border-zinc-200 bg-white px-2 py-1.5 text-xs text-zinc-700 font-medium"
+                                aria-label="Período da previsão"
+                              >
+                                <option value="today">Hoje</option>
+                                <option value="tomorrow">Amanhã</option>
+                                <option value="2days">2 dias</option>
+                                <option value="3days">3 dias</option>
+                                <option value="7days">Semana (7 dias)</option>
+                              </select>
                             </div>
 
                             {!hasData ? (
@@ -1011,7 +1232,8 @@ export function AtmosChat({
 
                                       <XAxis
                                         dataKey="day"
-                                        tick={{ fontSize: 11 }}
+                                        tick={{ fontSize: 10 }}
+                                        interval={0}
                                       />
 
                                       <YAxis
@@ -1087,7 +1309,8 @@ export function AtmosChat({
 
                                       <XAxis
                                         dataKey="day"
-                                        tick={{ fontSize: 11 }}
+                                        tick={{ fontSize: 10 }}
+                                        interval={0}
                                       />
 
                                       <YAxis
@@ -1113,19 +1336,14 @@ export function AtmosChat({
                                           position: "top",
                                           formatter: (value: number) =>
                                             `${value}%`,
-                                          fontSize: 11,
+                                          fontSize: 10,
                                           fill: "#0369a1",
                                         }}
                                       />
                                     </BarChart>
                                   ) : (
                                     <BarChart
-                                      data={[
-                                        {
-                                          day: "Agora",
-                                          windSpeed: weather.windSpeed!,
-                                        },
-                                      ]}
+                                      data={chartData}
                                       margin={{
                                         top: 22,
                                         right: 12,
@@ -1137,7 +1355,8 @@ export function AtmosChat({
 
                                       <XAxis
                                         dataKey="day"
-                                        tick={{ fontSize: 11 }}
+                                        tick={{ fontSize: 10 }}
+                                        interval={0}
                                       />
 
                                       <YAxis
@@ -1149,20 +1368,20 @@ export function AtmosChat({
                                       <Tooltip
                                         formatter={(value) => [
                                           `${value} km/h`,
-                                          "Vento atual",
+                                          "Vento",
                                         ]}
                                       />
 
                                       <Bar
                                         dataKey="windSpeed"
-                                        name="Vento atual"
+                                        name="Vento"
                                         fill="#6366f1"
                                         radius={[5, 5, 0, 0]}
                                         label={{
                                           position: "top",
                                           formatter: (value: number) =>
                                             `${value} km/h`,
-                                          fontSize: 11,
+                                          fontSize: 10,
                                           fill: "#4f46e5",
                                         }}
                                       />

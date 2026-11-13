@@ -4,6 +4,7 @@ import re
 import time
 import unicodedata
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request, UploadFile, File
@@ -34,6 +35,7 @@ WEATHER_CACHE_TTL = 300
 MAX_SESSIONS = 500
 MAX_HISTORY_MESSAGES = 20
 MAX_MESSAGE_LENGTH = 4000
+TIMEZONE = ZoneInfo("America/Sao_Paulo")
 
 app = FastAPI(title="Atmos API")
 
@@ -61,11 +63,11 @@ AVAILABLE_MODELS = [
 ]
 MODELS_TO_TRY = list(dict.fromkeys(m for m in AVAILABLE_MODELS if m))
 
-# Cache meteorológico para evitar chamadas repetidas à API Open-Meteo.
+# Cache meteorológico para evitar chamadas repetidas à API Open-Meteo
 weather_cache: dict[str, dict[str, Any]] = {}
 weather_cache_time: dict[str, float] = {}
 
-# Histórico separado por sessão.
+# Histórico separado por sessão
 conversation_memory: dict[str, list[dict[str, str]]] = {}
 
 # ============================================================
@@ -78,178 +80,102 @@ SYSTEM_INSTRUCTION = """
 ## 1. IDENTIDADE E PERSONALIDADE
 Você é o Atmos, assistente meteorológico oficial da plataforma UniAtmos (UNIP).
 
-- Personalidade: simpático, descontraído, inteligente, divertido e comunicativo.
-- Converse naturalmente, como alguém que entende muito de meteorologia, mas não precisa falar como um professor o tempo inteiro.
+- Personalidade: simpático, descontraído, inteligente, comunicativo e prestativo.
+- Converse naturalmente, como alguém que entende muito de meteorologia, com tom humano, acolhedor e profissional.
 - Use português brasileiro informal, fluido e natural.
-- Seja receptivo, tenha senso de humor e demonstre personalidade.
+- Seja receptivo e demonstre personalidade.
 - NÃO utilize emojis.
 - Evite respostas robóticas, introduções desnecessárias e explicações excessivamente formais.
 
-## 2. RESPOSTAS EXTREMAMENTE CURTAS
+## 2. EXTENSÃO E OBJETIVIDADE DAS RESPOSTAS
+Seja direto e conciso. O usuário não quer ler textos enormes para perguntas simples.
 
-Seja direto. O usuário não quer ler textos enormes para perguntas simples.
+- Respostas normais e comparações: 1 a 3 frases no máximo, destacando os números e fatos essenciais.
+- Perguntas conceituais/teóricas: máximo de 2 a 3 frases, explicando com clareza apenas o conceito solicitado.
+- Cumprimentos: apenas uma frase curta e simpática.
+- Recomendações de vestimenta: 1 a 2 frases práticas e objetivas.
+- Não faça introduções vazias nem rodeios desnecessários.
+- Não repita informações que o usuário já sabe.
 
-- Respostas normais: máximo de 1 a 2 frases.
-- Perguntas conceituais: máximo de 2 frases, explicando apenas o essencial.
-- Cumprimentos: apenas uma frase curta.
-- Brincadeiras: faça uma piada curta e, se necessário, uma explicação breve.
-- Nunca ultrapasse 50 palavras, exceto quando o usuário pedir detalhes.
-- Não faça introduções, conclusões ou contextualizações desnecessárias.
-- Não repita informações que o usuário já conhece.
-- Não acrescente previsões, temperaturas ou condições climáticas quando não forem solicitadas.
-- Não ofereça conselhos, recomendações ou alertas que não tenham relação direta com a pergunta.
-- Não transforme respostas simples em listas ou parágrafos.
-- Evite repetir informações, fazer introduções desnecessárias ou dividir respostas simples em vários tópicos.
-- Priorize responder diretamente ao que foi perguntado.
+## 3. TRATAMENTO RIGOROSO DE MENSAGENS VAGAS E SEM CONTEXTO
+O Atmos NUNCA deve presumir o que o usuário deseja saber.
 
-**Exemplos:**
+Quando receber mensagens vagas, incompletas ou sem contexto, como:
+- "Me fala"
+- "Me explica"
+- "Hoje"
+- "Amanhã"
+- "Como assim?"
+- "Quero saber"
+- "Pode falar"
+- "Sobre o clima"
+- "Temperatura"
+- "Vai?"
+- "Agora"
 
-Usuário: "O que é umidade?"
+O chatbot deve solicitar educadamente informações mais concretas, perguntando o que o usuário deseja saber.
 
-Atmos: "É a quantidade de vapor de água presente no ar. Quanto maior, mais úmido está o ambiente."
+REGRA OBRIGATÓRIA: NUNCA apresentar previsões, temperaturas, relatórios meteorológicos, recomendações ou gráficos sem que o usuário tenha solicitado claramente essas informações.
 
-Usuário: "Pode fazer 400 graus na Terra?"
+Exemplo:
+Usuário: "Me fala"
+Atmos: "Claro! O que você gostaria de saber? Posso explicar alguma condição meteorológica ou ajudar com uma dúvida sobre o clima de Sorocaba."
 
-Atmos: "400 °C? Aí você quer transformar o planeta numa air fryer! KKKK. Não, essa temperatura não ocorre naturalmente na superfície terrestre em condições normais."
+Se o usuário esclarecer sua intenção, o Atmos responderá diretamente ao que foi solicitado.
 
-## REGRA DE PRIORIDADE — NÃO ENROLE
+## 4. TRATAMENTO DE SAUDAÇÕES
+Preserve o comportamento de cumprimentar o usuário que já existe no Atmos.
+Sempre que receber mensagens como "Oi", "Olá", "Bom dia", "Boa tarde" ou "Boa noite", responda com um cumprimento natural, simpático e adequado ao horário, mantendo a conversa aberta.
 
-A BREVIDADE É OBRIGATÓRIA.
+REGRA OBRIGATÓRIA: NÃO confundir saudações com solicitações meteorológicas e NÃO apresentar previsões ou temperaturas automaticamente durante um cumprimento simples. Convide o usuário a perguntar o que deseja.
 
-Responda somente ao que foi perguntado. Não aproveite uma pergunta para falar de outros assuntos, adicionar informações meteorológicas não solicitadas ou dar recomendações desnecessárias.
+## 5. RESPEITO AO ESCOPO E LIMITAÇÕES DO ATMOS
+O Atmos deve responder somente sobre assuntos meteorológicos de Sorocaba que estejam dentro de suas funcionalidades e que possuam dados confiáveis disponíveis.
 
-Prefira uma resposta simples, natural e curta a uma explicação completa.
+Quando receber perguntas fora de seu escopo ou sobre informações que o sistema não consegue fornecer, deverá responder educadamente, explicando sua limitação.
 
-Só escreva respostas maiores quando o usuário solicitar explicitamente uma explicação detalhada.
+Isso inclui, especialmente:
+- Quantidades e acumulados históricos de chuva que não estejam disponíveis nas fontes integradas.
+- Dados meteorológicos do ano passado ou anos anteriores.
+- Comparações históricas sem dados confiáveis disponíveis.
+- Informações meteorológicas que não possam ser verificadas pelas APIs utilizadas.
+- Perguntas sem relação com meteorologia ou com a finalidade do Atmos.
 
-Se puder responder em duas frases, NÃO use cinco.
+NÃO tente adivinhar, inventar valores ou produzir respostas aproximadas como se fossem dados reais.
 
-## 3. HUMOR E INTERAÇÃO
-Tenha personalidade! Você não precisa ser sério o tempo inteiro.
+Exemplo:
+Usuário: "Quanto choveu exatamente neste mesmo dia no ano passado?"
+Atmos: "Não consigo consultar esse dado histórico com segurança no momento. Prefiro não apresentar informações que não posso verificar."
 
-- Quando o usuário fizer perguntas absurdas, apresentar teorias malucas ou afirmar coisas cientificamente impossíveis, responda com bom humor e brincadeiras amigáveis.
-- Exemplo: se alguém disser que existem naturalmente 200 °C na superfície da Terra, você pode brincar: "200 °C? Aí já não é previsão do tempo, é preparação para churrasco! Mas falando sério, essa temperatura não ocorre naturalmente nas condições normais da superfície terrestre."
-- Entre na brincadeira quando o usuário fizer piadas ou comentários engraçados.
-- Seja espontâneo, simpático e descontraído, sem parecer forçado.
-- Nunca humilhe, ofenda ou ridicularize o usuário.
-- Depois da brincadeira, esclareça corretamente a informação científica.
-- Não faça piadas quando o assunto envolver riscos reais, tragédias ou situações perigosas.
+IMPORTANTE: NÃO recuse informações que estejam disponíveis e possam ser consultadas corretamente (como clima atual de Sorocaba, previsão para os próximos 7 dias, vestimenta, comparações entre a semana passada e esta semana, recordes do mês atual e conceitos científicos de meteorologia). A limitação deve ser aplicada somente quando realmente necessária.
 
-## 4. CONHECIMENTO METEOROLÓGICO
-Você possui amplo conhecimento científico em meteorologia, climatologia e ciências atmosféricas.
+## 6. RECOMENDAÇÕES DE ACORDO COM AS CONDIÇÕES CLIMÁTICAS
+O Atmos fornece dicas práticas de vestimenta e preparação relacionadas às condições climáticas atuais de Sorocaba informadas no contexto meteorológico:
+- Frio (temperatura ou sensação <= 17 °C): recomendar casacos, blusas de frio, calças e roupas mais quentes.
+- Calor (temperatura ou sensação >= 25 °C): sugerir roupas leves, frescas e confortáveis (camiseta, bermuda/saia) e hidratação.
+- Clima ameno ou morno (18 °C a 24 °C): recomendar roupas intermediárias (calça leve e camiseta; levar uma blusa leve se esfriar).
+- Chuva: sugerir guarda-chuva, capa de chuva e atenção ao sair.
+- Vento intenso (> 20 km/h): recomendar atenção ao sair e casaco corta-vento.
+- As recomendações devem ser dinâmicas e baseadas EXCLUSIVAMENTE nos dados reais do momento fornecidos no contexto.
 
-Domine assuntos como:
-- Temperatura, sensação térmica, umidade relativa e pressão atmosférica.
-- Ventos, precipitação, evaporação e ciclo da água.
-- Formação e classificação de nuvens.
-- Frentes frias e quentes, massas de ar e sistemas de pressão.
-- El Niño, La Niña, ZCAS e mudanças climáticas.
-- Raios, trovões, tempestades, granizo, tornados e furacões.
-- Climatologia, instrumentos meteorológicos, radares, satélites e modelos de previsão.
+## 7. PERGUNTAS CONCEITUAIS E TEÓRICAS (SEM GRÁFICOS)
+- Para perguntas conceituais e teóricas (ex.: "O que é umidade do ar?", "O que significa sensação térmica?", "Por que a temperatura diminui durante a noite?", "O que é pressão atmosférica?", "Por que ocorre a formação de nuvens?"):
+- Forneça apenas uma explicação textual, clara e objetiva em 1 ou 2 frases.
+- NÃO apresente gráficos e não despeje previsões locais para perguntas conceituais.
 
-Responda a perguntas teóricas independentemente da disponibilidade da API meteorológica. Não dependa dos sensores para explicar conceitos científicos.
-
-Mantenha rigor científico, não invente informações e admita quando não souber algo.
-
-## 5. RESTRIÇÃO GEOGRÁFICA — ESPECIALISTA EM SOROCABA/SP
-
-O Atmos é um assistente meteorológico especializado exclusivamente em Sorocaba — SP.
-
-- Forneça previsões, temperaturas, condições climáticas e dados meteorológicos somente de Sorocaba.
-- Nunca forneça dados meteorológicos de outras cidades.
-- Se perguntarem sobre outra cidade, explique educadamente que o Atmos é dedicado exclusivamente à meteorologia de Sorocaba.
-- Se compararem Sorocaba com outra cidade, responda apenas sobre Sorocaba e esclareça que sua especialidade é exclusivamente essa região.
-- Não invente, estime ou tente buscar dados de outras localidades.
-- Mantenha essa regra mesmo se o usuário insistir.
-
-**Exemplos:**
-
-Usuário: "Como está o tempo em São Paulo?"
-
-Atmos: "Sou especializado na meteorologia de Sorocaba! Meu foco é manter você informado sobre o clima da nossa cidade."
-
-Usuário: "Sorocaba está mais quente que Curitiba?"
-
-Atmos: "Em Sorocaba está fazendo 19 °C. Sobre Curitiba, não vou conseguir comparar, pois meu trabalho é cuidar exclusivamente da meteorologia de Sorocaba!"
-
-Usuário: "Vai chover em Campinas amanhã?"
-
-Atmos: "Meu foco é Sorocaba! Por aqui posso te contar tudo sobre chuva, temperatura e previsão do tempo."
-
-**IMPORTANTE:** Apresente essa característica como uma especialização do Atmos, nunca como incapacidade, falha ou problema técnico.
-
-## 6. PRECISÃO DOS DADOS METEOROLÓGICOS
-Utilize os dados reais fornecidos no contexto:
-- Temperatura atual e sensação térmica.
-- Umidade relativa do ar.
-- Velocidade do vento.
-- Temperaturas máximas e mínimas.
-- Probabilidade e condições de chuva.
-
-Regras:
-- Nunca invente valores meteorológicos.
-- Nunca declare indisponível uma informação que já esteja presente no contexto.
-- Se uma medição não estiver disponível, explique isso naturalmente.
-- Se a API estiver offline, informe a limitação sem comprometer suas respostas sobre conhecimentos teóricos.
-- Diferencie dados observados, previsões e explicações científicas.
-
-## 7. INTERPRETAÇÃO E INTENÇÃO
-- Entenda mensagens informais, abreviações, erros de digitação e falhas de transcrição de voz.
-- Identifique a intenção do usuário mesmo quando a pergunta estiver escrita incorretamente.
-- Responda exatamente ao assunto solicitado.
-- Não forneça informações extras que não foram pedidas.
-- Em perguntas sobre chuva, foque na precipitação.
-- Em perguntas sobre temperatura, foque na temperatura.
-- Em perguntas gerais sobre o tempo, apresente um panorama breve.
-
-## 8. CUMPRIMENTOS E CONVERSAS CASUAIS
-
-O Atmos também deve saber conversar naturalmente quando o usuário iniciar uma interação social, mesmo sem fazer perguntas sobre meteorologia.
-
-- Se o usuário disser "Oi", "Olá", "Boa noite", "Bom dia", "Boa tarde", "Tudo bem?", "Como você está?" ou algo semelhante, responda de maneira simpática e descontraída.
-- Adapte a resposta ao que o usuário falou, sem repetir sempre a mesma frase.
-- Se perguntarem como você está, responda naturalmente e continue a conversa.
-- Aproveite para convidar o usuário a conversar sobre meteorologia, clima, curiosidades atmosféricas ou previsão do tempo.
-- Não dê explicações meteorológicas sem que tenham sido solicitadas.
-- Não trate cumprimentos e conversas sociais como assuntos fora do seu domínio.
-
-**Exemplos de comportamento:**
-
-Usuário: "Boa noite, Atmos! Tudo bem?"
-
-Atmos: "Boa noite! Por aqui tudo tranquilo! E você, como está? Bora falar de meteorologia, clima ou descobrir alguma curiosidade sobre o tempo?"
-
-Usuário: "Oi!"
-
-Atmos: "Opa! Tudo certo? Preparado para falar de nuvens, chuva, temperatura e outras coisas da nossa querida atmosfera?"
-
-Usuário: "Como você está?"
-
-Atmos: "Estou na pressão! Literalmente, né? E você, tudo bem? Vamos falar sobre meteorologia?"
-
-Usuário: "Bom dia, Atmos!"
-
-Atmos: "Bom dia! Que seu dia seja melhor que uma previsão de sol sem nenhuma nuvem! O que vamos descobrir hoje sobre o clima?"
-
-Seja espontâneo e varie as respostas. Não transforme toda interação em uma frase pronta.
-
-## 9. LIMITES DE ASSUNTO
-Seu domínio é meteorologia, clima e ciências atmosféricas.
-
-Se o usuário perguntar sobre assuntos completamente diferentes, recuse educadamente e com personalidade, usando uma brincadeira quando apropriado.
-
-Exemplo: "Aí você me quebra! Meu negócio é atmosfera, nuvens e previsão do tempo. Vamos falar de meteorologia?"
-
-## REGRA PRINCIPAL
-Seja um meteorologista inteligente, mas também um bom companheiro de conversa: explique sem enrolar, brinque quando houver oportunidade, seja simpático e nunca sacrifique a precisão científica pelo humor.
+## 8. RESTRIÇÃO GEOGRÁFICA — ESPECIALISTA EM SOROCABA/SP
+- O Atmos é especializado exclusivamente na meteorologia de Sorocaba — SP.
+- Forneça previsões, temperaturas e dados meteorológicos somente de Sorocaba.
+- Se perguntarem sobre outra cidade, explique educadamente com simpatia que seu foco e especialidade é Sorocaba.
+- Apresente isso como uma especialização da plataforma UniAtmos, nunca como falha ou defeito.
 """
 
 # ============================================================
-# UTILITÁRIOS
+# UTILITÁRIOS DE DETECÇÃO E PROCESSAMENTO
 # ============================================================
 
 def normalize_text(value: str) -> str:
-    """Normaliza texto para comparações sem acentos."""
+    """Normaliza texto para comparações sem acentos e em minúsculas."""
     value = unicodedata.normalize("NFD", value.lower())
     return "".join(
         char for char in value
@@ -295,28 +221,222 @@ def find_campus() -> dict[str, Any]:
     return UNIP_CAMPUSES[0]
 
 
-def is_conceptual_question(message: str) -> bool:
+def is_greeting(message: str) -> bool:
     """
-    Identifica perguntas teóricas, conceituais ou educacionais sobre meteorologia
-    (ex.: 'O que é El Niño?', 'Como se formam os raios?', 'O que é pressão atmosférica?').
+    Identifica saudações e cumprimentos casuais isolados.
+    Se a mensagem contiver uma pergunta meteorológica clara após a saudação,
+    não deve ser tratada como cumprimento puro.
+    """
+    text = normalize_text(message).strip()
+    greeting_patterns = [
+        r"^(?:oi|ola|opa|e ai|ei)\b",
+        r"^(?:bom dia|boa tarde|boa noite)\b",
+        r"^(?:tudo bem|como vai|como voce esta|como esta voce)\b",
+    ]
+
+    weather_indicators = [
+        "vai chover", "temperatura", "previsao", "clima", "tempo",
+        "chovendo", "calor", "frio", "vento", "graus", "sensacao",
+    ]
+    if any(indicator in text for indicator in weather_indicators):
+        return False
+
+    return any(re.search(pat, text) for pat in greeting_patterns)
+
+
+def is_vague_or_incomplete_message(message: str) -> bool:
+    """
+    Identifica mensagens vagas, incompletas ou sem contexto
+    (ex: 'Me fala', 'Me explica', 'Hoje', 'Amanhã', 'Como assim?', 'Quero saber',
+    'Pode falar', 'Sobre o clima', 'Temperatura', 'Vai?', 'Agora').
+    """
+    if is_greeting(message):
+        return False
+
+    raw = message.strip()
+    norm = normalize_text(raw)
+    words = re.findall(r"\b\w+\b", norm)
+
+    # Mensagens vazias ou apenas pontuação (ex: '?', '...', '!')
+    if not words:
+        return True
+
+    # Expressões vagas exatas conhecidas
+    vague_exact_phrases = {
+        "me fala",
+        "me explica",
+        "como assim",
+        "quero saber",
+        "queria saber",
+        "pode falar",
+        "sobre o clima",
+        "sobre o tempo",
+        "do clima",
+        "do tempo",
+        "sobre a temperatura",
+        "da temperatura",
+        "sobre a chuva",
+        "da chuva",
+        "fala ai",
+        "fala mais",
+        "fala pra mim",
+        "me conta",
+        "me conte",
+        "diz ai",
+        "me diz",
+        "e agora",
+        "e ai",
+        "e o clima",
+        "e o tempo",
+        "o clima",
+        "o tempo",
+        "a temperatura",
+        "a chuva",
+        "o vento",
+        "me ajuda",
+        "ajuda ai",
+        "pode me ajudar",
+        "preciso de ajuda",
+        "saber mais",
+        "mais informacoes",
+        "informacoes",
+        "curiosidade",
+        "teste",
+        "ok",
+        "ta",
+        "ta bom",
+        "vai",
+        "sera",
+        "sera que vai",
+        "hoje tempo",
+        "tempo hoje",
+        "clima hoje",
+        "hoje clima",
+        "chuva hoje",
+        "hoje chuva",
+        "vento hoje",
+        "hoje vento",
+        "temperatura hoje",
+        "hoje temperatura",
+        "tempo agora",
+        "agora tempo",
+        "clima agora",
+        "agora clima",
+    }
+
+    if norm in vague_exact_phrases:
+        return True
+
+    # Mensagens de 1 palavra única e isolada
+    if len(words) == 1:
+        vague_single_words = {
+            "hoje", "amanha", "ontem", "agora", "depois", "tempo", "clima",
+            "chuva", "temperatura", "vento", "sensacao", "frio", "calor",
+            "sol", "nuvem", "previsao", "dia", "noite", "tarde", "aqui",
+            "sorocaba", "unip", "teste", "chove", "esfria", "esquenta",
+            "grau", "graus", "umidade", "pressao", "ar", "ceu", "vai",
+            "sera", "fala", "explica", "ajuda", "saber", "olha", "ve",
+            "me", "pode", "quero", "queria", "sobre", "assim",
+        }
+        if words[0] in vague_single_words:
+            return True
+
+    # Mensagens de 2 ou 3 palavras que comecem com frases vagas sem pergunta ou termo concreto
+    if len(words) <= 3:
+        for vp in ["me fala", "me explica", "pode falar", "quero saber", "como assim", "sobre o clima", "sobre o tempo"]:
+            if norm.startswith(vp) and len(words) <= len(vp.split()) + 1:
+                return True
+
+    return False
+
+
+def is_unsupported_historical_query(message: str) -> bool:
+    """
+    Detecta perguntas sobre dados meteorológicos do ano passado ou acumulados
+    históricos de chuva que não estão disponíveis com confiabilidade nas fontes integradas.
     """
     text = normalize_text(message)
+
+    unsupported_patterns = [
+        r"\bano passado\b",
+        r"\bano anterior\b",
+        r"\bha (?:um|1) ano\b",
+        r"\bmesmo periodo no ano passado\b",
+        r"\bmesmo periodo ano passado\b",
+        r"\bnesse mesmo periodo no ano passado\b",
+        r"\bneste mesmo periodo no ano passado\b",
+        r"\bquanto choveu exatamente\b",
+        r"\bquanto choveu no ano passado\b",
+        r"\bacumulado de chuva (?:do|no) ano passado\b",
+        r"\bvolume de chuva (?:do|no) ano passado\b",
+        r"\bchoveu quanto no ano passado\b",
+        r"\bano retrasado\b",
+        r"\bha (?:dois|2|tres|3|cinco|5|dez|10) anos\b",
+    ]
+
+    return any(re.search(pat, text) for pat in unsupported_patterns)
+
+
+def is_conceptual_or_explanatory_question(message: str) -> bool:
+    """
+    Identifica perguntas teóricas, conceituais ou educacionais sobre meteorologia
+    em que NÃO se deve apresentar gráficos (ex.: 'O que é umidade do ar?',
+    'O que significa sensação térmica?', 'Por que a temperatura diminui durante a noite?',
+    'O que é pressão atmosférica?', 'Por que ocorre a formação de nuvens?').
+    """
+    text = normalize_text(message)
+
     conceptual_patterns = [
         r"\bo que e\b",
+        r"\bo que sao\b",
         r"\bo que significa\b",
-        r"\bcomo ocorre\b",
-        r"\bcomo funciona\b",
+        r"\bo que quer dizer\b",
+        r"\bpor que\b",
+        r"\bporque\b",
+        r"\bqual o motivo\b",
+        r"\bqual a razao\b",
+        r"\bcomo ocorre(m)?\b",
+        r"\bcomo funciona(m)?\b",
+        r"\bcomo acontece(m)?\b",
+        r"\bcomo se forma(m)?\b",
+        r"\bformacao de nuvens\b",
         r"\bqual a diferenca\b",
         r"\bconceito de\b",
-        r"\bcomo se forma\b",
-        r"\bo que causa\b",
-        r"\bexplique\b",
-        r"\bcomo age\b",
-        r"\bpara que serve\b",
-        r"\bdefina\b",
         r"\bdefinicao de\b",
+        r"\bdefina\b",
+        r"\bexplique\b",
+        r"\bo que causa(m)?\b",
+        r"\bpara que serve(m)?\b",
+        r"\bpor que a temperatura diminui\b",
+        r"\bpor que ocorre\b",
+        r"\bo que e pressao\b",
+        r"\bo que e umidade\b",
     ]
+
     return any(re.search(pat, text) for pat in conceptual_patterns)
+
+
+def is_clothing_advice_question(message: str) -> bool:
+    """
+    Identifica perguntas específicas sobre recomendações de vestimenta ou cuidados
+    (ex: 'Que roupa devo usar?', 'Devo levar casaco?', 'Preciso de guarda-chuva?').
+    """
+    text = normalize_text(message)
+    clothing_patterns = [
+        r"\bque roupa\b",
+        r"\bqual roupa\b",
+        r"\bo que vestir\b",
+        r"\bcomo me vestir\b",
+        r"\bdevo levar (?:casaco|blusa|jaqueta|guarda[- ]?chuva|agasalho)\b",
+        r"\bpreciso de (?:casaco|blusa|jaqueta|guarda[- ]?chuva|agasalho)\b",
+        r"\bpreciso levar (?:casaco|blusa|jaqueta|guarda[- ]?chuva|agasalho)\b",
+        r"\blevo (?:casaco|blusa|jaqueta|guarda[- ]?chuva|agasalho)\b",
+        r"\bsair de (?:casaco|blusa|bermuda|camiseta)\b",
+        r"\bdica de roupa\b",
+        r"\bdicas de roupa\b",
+        r"\brecomendacao de roupa\b",
+    ]
+    return any(re.search(pat, text) for pat in clothing_patterns)
 
 
 def is_absurd_question(message: str) -> bool:
@@ -344,7 +464,14 @@ def detect_weather_topics(message: str) -> list[str]:
     Identifica os assuntos meteorológicos específicos presentes na pergunta.
     Tópicos: 'rain', 'temperature', 'humidity', 'wind', 'general'.
     """
-    if is_absurd_question(message) or is_conceptual_question(message):
+    if (
+        is_absurd_question(message)
+        or is_conceptual_or_explanatory_question(message)
+        or is_vague_or_incomplete_message(message)
+        or is_greeting(message)
+        or is_clothing_advice_question(message)
+        or is_unsupported_historical_query(message)
+    ):
         return []
 
     text = normalize_text(message)
@@ -359,7 +486,6 @@ def detect_weather_topics(message: str) -> list[str]:
         r"\bchuvisc",
         r"\btemporal\b",
         r"\btempestade\b",
-        r"\bguarda[- ]?chuva\b",
         r"\baguaceiro\b",
         r"\bvai chover\b",
         r"\bvai ter chuva\b",
@@ -367,6 +493,7 @@ def detect_weather_topics(message: str) -> list[str]:
         r"\bprobabilidade de chuva\b",
         r"\bpancada(s)? de chuva\b",
         r"\bvolume de chuva\b",
+        r"\bevolucao da chuva\b",
         r"\bmm de chuva\b",
     ]
     if any(re.search(pat, text) for pat in rain_patterns):
@@ -389,8 +516,11 @@ def detect_weather_topics(message: str) -> list[str]:
         r"\bmaxima\b",
         r"\bminima\b",
         r"\btermometr",
-        r"\bcongeland",
-        r"\bfervend",
+        r"\bvariacao da temperatura\b",
+        r"\bmais quente\b",
+        r"\bmais fri[ao]\b",
+        r"\baumentar\b",
+        r"\bdiminuir\b",
     ]
     if any(re.search(pat, text) for pat in temp_patterns):
         detected.append("temperature")
@@ -426,6 +556,8 @@ def detect_weather_topics(message: str) -> list[str]:
             r"\bcomo vai ficar\b",
             r"\bcomo estara\b",
             r"\bcomo esta o dia\b",
+            r"\bcomo esta o clima hoje\b",
+            r"\bcomo esta o tempo\b",
             r"\bcondicoes do tempo\b",
             r"\bcondicoes atuais\b",
         ]
@@ -438,10 +570,20 @@ def detect_weather_topics(message: str) -> list[str]:
 def detect_chart_topics(message: str) -> list[str]:
     """
     Retorna quais gráficos devem ser oferecidos para a mensagem.
-    Se a pergunta for geral, disponibiliza os 3 gráficos do sistema.
-    Se for sobre umidade, conceitual ou fora do escopo, retorna vazio.
+    Regra obrigatória:
+    - NÃO exibe gráficos em perguntas conceituais, vagas, saudações, dúvidas de roupa,
+      limitações históricas ou sobre outras cidades.
+    - Exibe gráficos apenas quando o usuário tiver solicitado claramente informações de previsão/evolução meteorológica.
     """
-    if is_absurd_question(message) or is_conceptual_question(message):
+    if (
+        is_absurd_question(message)
+        or is_conceptual_or_explanatory_question(message)
+        or is_vague_or_incomplete_message(message)
+        or is_greeting(message)
+        or is_clothing_advice_question(message)
+        or is_unsupported_historical_query(message)
+        or mentions_another_city(message)
+    ):
         return []
 
     topics = detect_weather_topics(message)
@@ -450,12 +592,6 @@ def detect_chart_topics(message: str) -> list[str]:
 
     chart_supported = ["rain", "temperature", "wind"]
     return [t for t in topics if t in chart_supported]
-
-
-def detect_chart_topic(message: str) -> str | None:
-    """Compatibilidade com campo único legado."""
-    charts = detect_chart_topics(message)
-    return charts[0] if charts else None
 
 
 def mentions_another_city(message: str) -> bool:
@@ -552,16 +688,44 @@ async def get_weather() -> dict[str, Any] | None:
         return None
 
 
-def weather_context(weather: dict[str, Any] | None) -> str:
-    """Formata os dados meteorológicos reais de Sorocaba com clareza máxima para o modelo."""
-    import json
+def weather_context(
+    weather: dict[str, Any] | None,
+    is_vague: bool = False,
+    is_greeting_mode: bool = False,
+    is_unsupported_historical: bool = False,
+) -> str:
+    """Formata os dados meteorológicos reais de Sorocaba com rigor e clareza analítica."""
+    if is_vague:
+        return (
+            "DADOS METEOROLÓGICOS DE SOROCABA — SP:\n"
+            "[ORIENTAÇÃO OBRIGATÓRIA — MENSAGEM VAGA]: A mensagem enviada pelo usuário é vaga, incompleta ou sem contexto específico. "
+            "Você NUNCA deve presumir o que o usuário deseja saber. "
+            "REGRA OBRIGATÓRIA: NUNCA apresente previsões, temperaturas, relatórios meteorológicos, recomendações ou gráficos. "
+            "Solicite educadamente informações mais concretas, perguntando o que ele gostaria de saber (exemplo: 'Claro! O que você gostaria de saber? Posso explicar alguma condição meteorológica ou ajudar com uma dúvida sobre o clima de Sorocaba.')."
+        )
+
+    if is_greeting_mode:
+        return (
+            "DADOS METEOROLÓGICOS DE SOROCABA — SP:\n"
+            "[ORIENTAÇÃO OBRIGATÓRIA — CUMPRIMENTO]: O usuário enviou apenas uma saudação ou cumprimento casual. "
+            "Responda com um cumprimento natural, simpático e adequado ao horário em Sorocaba, mantendo a conversa aberta. "
+            "REGRA OBRIGATÓRIA: NUNCA apresente previsões, temperaturas, relatórios meteorológicos ou gráficos durante um cumprimento simples. Convide o usuário a perguntar o que deseja saber."
+        )
+
+    if is_unsupported_historical:
+        return (
+            "DADOS METEOROLÓGICOS DE SOROCABA — SP:\n"
+            "[ORIENTAÇÃO OBRIGATÓRIA — LIMITAÇÃO DE DADOS HISTÓRICOS]: O usuário perguntou sobre dados meteorológicos do ano passado, acumulados de chuva de datas passadas ou informações que não estão disponíveis com precisão nas APIs integradas. "
+            "Responda educadamente explicando sua limitação, de forma similar a: 'Não consigo consultar esse dado histórico com segurança no momento. Prefiro não apresentar informações que não posso verificar.' "
+            "NÃO tente adivinhar, inventar números ou dar respostas aproximadas como se fossem reais. NÃO apresente gráficos."
+        )
 
     if not weather:
         return (
             "DADOS METEOROLÓGICOS DE SOROCABA — SP:\n"
-            "Aviso: Os sensores de leitura em tempo real e a API de previsão local estão temporariamente indisponíveis.\n"
-            "Se o usuário perguntar pelas condições imediatas em Sorocaba, informe com simpatia essa indisponibilidade técnica momentânea, "
-            "mas responda a dúvidas gerais, históricas ou teóricas normalmente com seu conhecimento de especialista."
+            "Aviso: Os sensores em tempo real e a API meteorológica local estão momentaneamente indisponíveis.\n"
+            "Se o usuário perguntar sobre as condições imediatas em Sorocaba, informe com simpatia essa indisponibilidade técnica temporária. "
+            "Responda a dúvidas gerais ou conceituais normalmente com base no seu conhecimento de especialista."
         )
 
     current_temp = weather.get("temperature")
@@ -573,6 +737,11 @@ def weather_context(weather: dict[str, Any] | None) -> str:
     fetched_at = weather.get("fetchedAt")
     fetched_date = weather.get("fetchedDate")
 
+    # Dicas de vestimenta e cuidados
+    clothing = weather.get("clothingRecommendation", {})
+    clothing_summary = clothing.get("summary", "")
+
+    # Previsão diária
     forecast_items = []
     for f in weather.get("forecast", []):
         day_label = f.get("day", "")
@@ -583,8 +752,22 @@ def weather_context(weather: dict[str, Any] | None) -> str:
         forecast_items.append(
             f"  * {day_label}: mínima de {min_t}°C, máxima de {max_t}°C, {cond}, probabilidade de chuva {rain_p}%"
         )
-
     forecast_str = "\n".join(forecast_items)
+
+    # Analítica temporal
+    analytics = weather.get("analytics", {})
+    week_summary = analytics.get("weekComparisonSummary", "Comparação semanal em processamento.")
+    trend_summary = analytics.get("temperatureTrendNextDays", "Tendência estável.")
+
+    hottest_month = analytics.get("hottestDayThisMonth")
+    coldest_month = analytics.get("coldestDayThisMonth")
+
+    month_records_str = ""
+    if hottest_month and coldest_month:
+        month_records_str = (
+            f"  * Dia mais quente deste mês até agora: {hottest_month.get('day')} ({hottest_month.get('date')}) com máxima de {hottest_month.get('maxTemp')}°C.\n"
+            f"  * Dia mais frio deste mês até agora: {coldest_month.get('day')} ({coldest_month.get('date')}) com mínima de {coldest_month.get('minTemp')}°C."
+        )
 
     return (
         f"DADOS METEOROLÓGICOS REAIS DE SOROCABA — SP (Atualizado às {fetched_at} de {fetched_date}):\n"
@@ -595,10 +778,14 @@ def weather_context(weather: dict[str, Any] | None) -> str:
         f"  * Vento atual: {wind_speed} km/h\n"
         f"  * Condição do céu: {condition}\n"
         f"  * Probabilidade de chuva hoje: {rain_prob}%\n"
+        f"• Dicas e Recomendações de Vestimenta Atuais:\n"
+        f"  * {clothing_summary}\n"
         f"• Previsão Diária Disponível para Sorocaba:\n"
-        f"{forecast_str}\n\n"
-        f"JSON estruturado completo:\n"
-        f"{json.dumps(weather, ensure_ascii=False)}"
+        f"{forecast_str}\n"
+        f"• Analítica e Comparações Meteorológicas ao Longo do Tempo:\n"
+        f"  * Comparação Semanal (Semana Passada vs Esta Semana): {week_summary}\n"
+        f"  * Tendência dos Próximos Dias: {trend_summary}\n"
+        f"{month_records_str}"
     )
 
 
@@ -606,6 +793,9 @@ def build_messages(
     history: list[dict[str, str]],
     message: str,
     weather: dict[str, Any] | None,
+    is_vague: bool = False,
+    is_greeting_mode: bool = False,
+    is_unsupported_historical: bool = False,
 ) -> list[dict[str, str]]:
     """Monta a pilha de mensagens com instruções, dados meteorológicos e histórico."""
     messages: list[dict[str, str]] = [
@@ -615,7 +805,12 @@ def build_messages(
         },
         {
             "role": "system",
-            "content": weather_context(weather),
+            "content": weather_context(
+                weather=weather,
+                is_vague=is_vague,
+                is_greeting_mode=is_greeting_mode,
+                is_unsupported_historical=is_unsupported_historical,
+            ),
         },
     ]
 
@@ -683,7 +878,6 @@ async def call_groq_resilient(messages: list[dict[str, str]]) -> str:
     for model_name in MODELS_TO_TRY:
         for attempt in range(2):
             try:
-                # max_completion_tokens=1000 previne truncamento durante reasoning dos modelos OSS
                 completion = await groq_client.chat.completions.create(
                     model=model_name,
                     messages=messages,
@@ -701,11 +895,9 @@ async def call_groq_resilient(messages: list[dict[str, str]]) -> str:
                 err_str = str(exc).lower()
                 print(f"Falha com modelo {model_name} (tentativa {attempt + 1}): {exc}")
 
-                # Se o modelo não existe na conta Groq, passa para o próximo modelo sem insistir
                 if "model_not_found" in err_str or "model_decommissioned" in err_str or "404" in err_str:
                     break
 
-                # Aguarda brevemente para retentar erros transitórios (429, 500, 502, 503)
                 await asyncio.sleep(0.5 * (attempt + 1))
 
     raise RuntimeError(f"Não foi possível obter resposta dos modelos Groq. Último erro: {last_error}")
@@ -781,18 +973,25 @@ async def api_chat(request: Request):
     incoming_history = validate_history(body.get("history"))
     history = incoming_history if incoming_history else conversation_memory.get(session_id, []).copy()
 
-    # Identificação dos tópicos da pergunta para controle de gráficos
+    # 1. Avalia se a mensagem é saudação, vaga ou consulta histórica não suportada
+    is_greet = is_greeting(message)
+    is_vague = is_vague_or_incomplete_message(message)
+    is_unsupported_hist = is_unsupported_historical_query(message)
+
+    # 2. Identificação dos tópicos da pergunta para controle estrito de gráficos
     chart_topics = detect_chart_topics(message)
 
-    # Consulta os dados meteorológicos locais de Sorocaba
-    # (Não interrompe o fluxo caso a API falhe; Atmos continua respondendo como especialista)
+    # 3. Consulta os dados meteorológicos atuais e previsão de Sorocaba
     weather = await get_weather()
 
-    # Monta a estrutura da conversa
+    # 4. Monta a estrutura da conversa
     messages = build_messages(
         history=history,
         message=message,
         weather=weather,
+        is_vague=is_vague,
+        is_greeting_mode=is_greet,
+        is_unsupported_historical=is_unsupported_hist,
     )
 
     try:
@@ -800,7 +999,7 @@ async def api_chat(request: Request):
 
         if not reply:
             reply = (
-                "Entendi sua dúvida, mas tive uma oscilação ao processar a resposta. "
+                "Entendi sua mensagem, mas tive uma oscilação rápida ao processar a resposta. "
                 "Pode me perguntar novamente?"
             )
 
